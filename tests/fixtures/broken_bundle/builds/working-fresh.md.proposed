@@ -1,0 +1,23 @@
+---
+type: Build
+title: Working Fresh
+description: A working build touched recently — updated via write macro.
+status: working
+effort: S
+impact: high
+domain: TSA
+timestamp: 2026-06-18T00:00:00Z
+last_touched: 2026-06-18
+---
+
+# What it is
+Updated content for the working-fresh build.
+
+# Next action
+Continue development.
+
+# Dependencies
+(none)
+
+# Notes
+This is a staged edit awaiting human review. Rename to working-fresh.md to apply.
