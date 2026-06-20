@@ -1,1 +1,254 @@
-"""\nPython twin of OKFWriteApply.bas — write envelope parser and gate logic.\n\nKeeps the same behavioural contract as the VBA macro:\n  - parse_write_envelope: extract (path, contents) pairs from a <VBA_WRITE> block.\n  - compute_operations:   apply the gate — new file → write, existing → .proposed.\n  - Never produces a delete operation.\n\nGolden vectors cover: single new file, single existing file, mixed batch,\nempty envelope, and the no-block error path.\n"""\n\nimport re\nimport pytest\n\n\n# ── Twin logic ────────────────────────────────────────────────────────────────\n\ndef parse_write_envelope(text: str) -> list[tuple[str, str]]:\n    match = re.search(r"<VBA_WRITE>(.*?)</VBA_WRITE>", text, re.DOTALL)\n    if not match:\n        raise ValueError("No <VBA_WRITE> block found in input")\n    body = match.group(1)\n    body = body.replace("\r\n", "\n").replace("\r", "\n")\n    result = []\n    block_re = re.compile(r"### FILE:\\s*(.+?)\\n(.*?)### END FILE", re.DOTALL)\n    for m in block_re.finditer(body):\n        path = m.group(1).strip()\n        contents = m.group(2)\n        if contents.startswith("\n"):\n            contents = contents[1:]\n        contents = contents.rstrip("\n")\n        result.append((path, contents))\n    return result\n\n\ndef compute_operations(\n    parsed_files: list[tuple[str, str]],\n    existing_files: set[str],\n) -> list[tuple[str, str, str]]:\n    ops = []\n    for path, contents in parsed_files:\n        if path in existing_files:\n            ops.append(("staged", path + ".proposed", contents))\n        else:\n            ops.append(("write", path, contents))\n    return ops\n\n\n_CONTENTS_A = """\\\n---\ntype: Build\ntitle: Build A\ndescription: First fixture build.\nstatus: idea\neffort: S\nimpact: high\ndomain: TSA\ntimestamp: 2026-06-18T00:00:00Z\nlast_touched: 2026-06-18\n---\n\n# What it is\nFixture build A.\n\n# Next action\nDo something.\n\n# Dependencies\n(none)\n\n# Notes\n(none)""".strip()\n\n_CONTENTS_B = """\\\n---\ntype: Build\ntitle: Build B\ndescription: Second fixture build.\nstatus: production\neffort: S\nimpact: high\ndomain: TSA\ntimestamp: 2026-06-18T00:00:00Z\nlast_touched: 2026-06-18\n---\n\n# What it is\nFixture build B.\n\n# Next action\nMonitor.\n\n# Dependencies\n(none)\n\n# Notes\n(none)""".strip()\n\n\ndef _envelope(*path_content_pairs: tuple[str, str]) -> str:\n    parts = []\n    for path, contents in path_content_pairs:\n        parts.append(f"### FILE: {path}\\n{contents}\\n### END FILE")\n    return "<VBA_WRITE>\\n" + "\\n".join(parts) + "\\n</VBA_WRITE>"\n\n\nGOLDEN_VECTORS = [\n    {\n        "name": "single_new_file",\n        "envelope": _envelope(("builds/new-build.md", _CONTENTS_A)),\n        "existing": set(),\n        "expected_ops": [("write", "builds/new-build.md", _CONTENTS_A)],\n    },\n    {\n        "name": "single_existing_file_stages_as_proposed",\n        "envelope": _envelope(("builds/existing-build.md", _CONTENTS_A)),\n        "existing": {"builds/existing-build.md"},\n        "expected_ops": [("staged", "builds/existing-build.md.proposed", _CONTENTS_A)],\n    },\n    {\n        "name": "mixed_new_and_existing",\n        "envelope": _envelope(\n            ("builds/new-build.md", _CONTENTS_A),\n            ("builds/existing-build.md", _CONTENTS_B),\n        ),\n        "existing": {"builds/existing-build.md"},\n        "expected_ops": [\n            ("write", "builds/new-build.md", _CONTENTS_A),\n            ("staged", "builds/existing-build.md.proposed", _CONTENTS_B),\n        ],\n    },\n    {\n        "name": "empty_envelope_yields_no_ops",\n        "envelope": "<VBA_WRITE>\\n</VBA_WRITE>",\n        "existing": set(),\n        "expected_ops": [],\n    },\n    {\n        "name": "two_new_files",\n        "envelope": _envelope(\n            ("builds/alpha.md", _CONTENTS_A),\n            ("builds/beta.md", _CONTENTS_B),\n        ),\n        "existing": set(),\n        "expected_ops": [\n            ("write", "builds/alpha.md", _CONTENTS_A),\n            ("write", "builds/beta.md", _CONTENTS_B),\n        ],\n    },\n    {\n        "name": "two_existing_files_both_staged",\n        "envelope": _envelope(\n            ("builds/alpha.md", _CONTENTS_A),\n            ("builds/beta.md", _CONTENTS_B),\n        ),\n        "existing": {"builds/alpha.md", "builds/beta.md"},\n        "expected_ops": [\n            ("staged", "builds/alpha.md.proposed", _CONTENTS_A),\n            ("staged", "builds/beta.md.proposed", _CONTENTS_B),\n        ],\n    },\n]\n\n\n@pytest.mark.parametrize("vec", GOLDEN_VECTORS, ids=[v["name"] for v in GOLDEN_VECTORS])\ndef test_golden_vector(vec: dict) -> None:\n    parsed = parse_write_envelope(vec["envelope"])\n    ops = compute_operations(parsed, vec["existing"])\n    assert ops == vec["expected_ops"]\n\n\ndef test_no_vba_write_block_raises_value_error() -> None:\n    with pytest.raises(ValueError, match="No <VBA_WRITE>"):\n        parse_write_envelope("just some text with no envelope")\n\n\ndef test_preamble_and_postamble_ignored() -> None:\n    text = (\n        "Here is the output you requested:\\n\\n"\n        + _envelope(("builds/new.md", _CONTENTS_A))\n        + "\\n\\nLet me know if you need changes."\n    )\n    parsed = parse_write_envelope(text)\n    assert len(parsed) == 1\n    assert parsed[0][0] == "builds/new.md"\n\n\ndef test_proposed_path_has_dot_proposed_suffix() -> None:\n    env = _envelope(("builds/foo.md", _CONTENTS_A))\n    parsed = parse_write_envelope(env)\n    ops = compute_operations(parsed, {"builds/foo.md"})\n    assert ops[0][1] == "builds/foo.md.proposed"\n\n\ndef test_original_path_unchanged_for_new_file() -> None:\n    env = _envelope(("builds/bar.md", _CONTENTS_A))\n    parsed = parse_write_envelope(env)\n    ops = compute_operations(parsed, set())\n    assert ops[0][1] == "builds/bar.md"\n\n\ndef test_no_delete_operations_ever() -> None:\n    env = _envelope(\n        ("builds/new.md", _CONTENTS_A),\n        ("builds/old.md", _CONTENTS_B),\n    )\n    parsed = parse_write_envelope(env)\n    ops = compute_operations(parsed, {"builds/old.md"})\n    for op_type, _, _ in ops:\n        assert op_type in ("write", "staged"), f"unexpected op type: {op_type}"\n\n\ndef test_contents_preserved_exactly() -> None:\n    env = _envelope(("builds/precise.md", _CONTENTS_A))\n    parsed = parse_write_envelope(env)\n    assert parsed[0][1] == _CONTENTS_A\n\n\ndef test_crlf_envelope_normalised() -> None:\n    env = _envelope(("builds/win.md", _CONTENTS_A)).replace("\n", "\r\n")\n    parsed = parse_write_envelope(env)\n    assert len(parsed) == 1\n    assert parsed[0][0] == "builds/win.md"\n
+"""
+Python twin of OKFWriteApply.bas — write envelope parser and gate logic.
+
+Keeps the same behavioural contract as the VBA macro:
+  - parse_write_envelope: extract (path, contents) pairs from a <VBA_WRITE> block.
+  - compute_operations:   apply the gate — new file → write, existing → .proposed.
+  - Never produces a delete operation.
+
+Golden vectors cover: single new file, single existing file, mixed batch,
+empty envelope, and the no-block error path.
+"""
+
+import re
+import pytest
+
+
+# ── Twin logic ──────────────────────────────────────────────────────────────────────────
+
+def parse_write_envelope(text: str) -> list[tuple[str, str]]:
+    """
+    Extract files from a <VBA_WRITE> envelope.
+
+    Returns a list of (path, contents) tuples in the order they appear.
+    Raises ValueError if no <VBA_WRITE> block is present.
+    """
+    match = re.search(r"<VBA_WRITE>(.*?)</VBA_WRITE>", text, re.DOTALL)
+    if not match:
+        raise ValueError("No <VBA_WRITE> block found in input")
+
+    body = match.group(1)
+    # Normalise CRLF so the regex below works regardless of clipboard line-endings.
+    body = body.replace("\r\n", "\n").replace("\r", "\n")
+
+    result = []
+    # Each block: ### FILE: <path>\n<contents>\n### END FILE
+    block_re = re.compile(r"### FILE:\s*(.+?)\n(.*?)### END FILE", re.DOTALL)
+    for m in block_re.finditer(body):
+        path = m.group(1).strip()
+        contents = m.group(2)
+        # Strip the single separator newline that follows ### FILE: <path>
+        if contents.startswith("\n"):
+            contents = contents[1:]
+        # Strip the trailing newline that precedes ### END FILE
+        contents = contents.rstrip("\n")
+        result.append((path, contents))
+
+    return result
+
+
+def compute_operations(
+    parsed_files: list[tuple[str, str]],
+    existing_files: set[str],
+) -> list[tuple[str, str, str]]:
+    """
+    Determine file operations from a parsed envelope.
+
+    For each (path, contents):
+      path NOT in existing_files  →  ('write',  path,              contents)
+      path IN  existing_files     →  ('staged', path + '.proposed', contents)
+
+    No delete operation is ever produced.
+    """
+    ops = []
+    for path, contents in parsed_files:
+        if path in existing_files:
+            ops.append(("staged", path + ".proposed", contents))
+        else:
+            ops.append(("write", path, contents))
+    return ops
+
+
+# ── Shared fixture content ────────────────────────────────────────────────────────────────────
+
+_CONTENTS_A = """\
+---
+type: Build
+title: Build A
+description: First fixture build.
+status: idea
+effort: S
+impact: high
+domain: TSA
+timestamp: 2026-06-18T00:00:00Z
+last_touched: 2026-06-18
+---
+
+# What it is
+Fixture build A.
+
+# Next action
+Do something.
+
+# Dependencies
+(none)
+
+# Notes
+(none)"""
+
+_CONTENTS_B = """\
+---
+type: Build
+title: Build B
+description: Second fixture build.
+status: production
+effort: S
+impact: high
+domain: TSA
+timestamp: 2026-06-18T00:00:00Z
+last_touched: 2026-06-18
+---
+
+# What it is
+Fixture build B.
+
+# Next action
+Monitor.
+
+# Dependencies
+(none)
+
+# Notes
+(none)"""
+
+
+def _envelope(*path_content_pairs: tuple[str, str]) -> str:
+    parts = []
+    for path, contents in path_content_pairs:
+        parts.append(f"### FILE: {path}\n{contents}\n### END FILE")
+    return "<VBA_WRITE>\n" + "\n".join(parts) + "\n</VBA_WRITE>"
+
+
+# ── Golden vectors ─────────────────────────────────────────────────────────────────────────────
+
+GOLDEN_VECTORS = [
+    {
+        "name": "single_new_file",
+        "envelope": _envelope(("builds/new-build.md", _CONTENTS_A)),
+        "existing": set(),
+        "expected_ops": [("write", "builds/new-build.md", _CONTENTS_A)],
+    },
+    {
+        "name": "single_existing_file_stages_as_proposed",
+        "envelope": _envelope(("builds/existing-build.md", _CONTENTS_A)),
+        "existing": {"builds/existing-build.md"},
+        "expected_ops": [("staged", "builds/existing-build.md.proposed", _CONTENTS_A)],
+    },
+    {
+        "name": "mixed_new_and_existing",
+        "envelope": _envelope(
+            ("builds/new-build.md", _CONTENTS_A),
+            ("builds/existing-build.md", _CONTENTS_B),
+        ),
+        "existing": {"builds/existing-build.md"},
+        "expected_ops": [
+            ("write", "builds/new-build.md", _CONTENTS_A),
+            ("staged", "builds/existing-build.md.proposed", _CONTENTS_B),
+        ],
+    },
+    {
+        "name": "empty_envelope_yields_no_ops",
+        "envelope": "<VBA_WRITE>\n</VBA_WRITE>",
+        "existing": set(),
+        "expected_ops": [],
+    },
+    {
+        "name": "two_new_files",
+        "envelope": _envelope(
+            ("builds/alpha.md", _CONTENTS_A),
+            ("builds/beta.md", _CONTENTS_B),
+        ),
+        "existing": set(),
+        "expected_ops": [
+            ("write", "builds/alpha.md", _CONTENTS_A),
+            ("write", "builds/beta.md", _CONTENTS_B),
+        ],
+    },
+    {
+        "name": "two_existing_files_both_staged",
+        "envelope": _envelope(
+            ("builds/alpha.md", _CONTENTS_A),
+            ("builds/beta.md", _CONTENTS_B),
+        ),
+        "existing": {"builds/alpha.md", "builds/beta.md"},
+        "expected_ops": [
+            ("staged", "builds/alpha.md.proposed", _CONTENTS_A),
+            ("staged", "builds/beta.md.proposed", _CONTENTS_B),
+        ],
+    },
+]
+
+
+# ── Tests ─────────────────────────────────────────────────────────────────────────────────
+
+@pytest.mark.parametrize("vec", GOLDEN_VECTORS, ids=[v["name"] for v in GOLDEN_VECTORS])
+def test_golden_vector(vec: dict) -> None:
+    parsed = parse_write_envelope(vec["envelope"])
+    ops = compute_operations(parsed, vec["existing"])
+    assert ops == vec["expected_ops"]
+
+
+def test_no_vba_write_block_raises_value_error() -> None:
+    with pytest.raises(ValueError, match="No <VBA_WRITE>"):
+        parse_write_envelope("just some text with no envelope")
+
+
+def test_preamble_and_postamble_ignored() -> None:
+    """Prose before and after <VBA_WRITE> is silently discarded."""
+    text = (
+        "Here is the output you requested:\n\n"
+        + _envelope(("builds/new.md", _CONTENTS_A))
+        + "\n\nLet me know if you need changes."
+    )
+    parsed = parse_write_envelope(text)
+    assert len(parsed) == 1
+    assert parsed[0][0] == "builds/new.md"
+
+
+def test_proposed_path_has_dot_proposed_suffix() -> None:
+    env = _envelope(("builds/foo.md", _CONTENTS_A))
+    parsed = parse_write_envelope(env)
+    ops = compute_operations(parsed, {"builds/foo.md"})
+    assert ops[0][1] == "builds/foo.md.proposed"
+
+
+def test_original_path_unchanged_for_new_file() -> None:
+    env = _envelope(("builds/bar.md", _CONTENTS_A))
+    parsed = parse_write_envelope(env)
+    ops = compute_operations(parsed, set())
+    assert ops[0][1] == "builds/bar.md"
+
+
+def test_no_delete_operations_ever() -> None:
+    env = _envelope(
+        ("builds/new.md", _CONTENTS_A),
+        ("builds/old.md", _CONTENTS_B),
+    )
+    parsed = parse_write_envelope(env)
+    ops = compute_operations(parsed, {"builds/old.md"})
+    for op_type, _, _ in ops:
+        assert op_type in ("write", "staged"), f"unexpected op type: {op_type}"
+
+
+def test_contents_preserved_exactly() -> None:
+    env = _envelope(("builds/precise.md", _CONTENTS_A))
+    parsed = parse_write_envelope(env)
+    assert parsed[0][1] == _CONTENTS_A
+
+
+def test_crlf_envelope_normalised() -> None:
+    """Windows CRLF line endings in the envelope are handled correctly."""
+    env = _envelope(("builds/win.md", _CONTENTS_A)).replace("\n", "\r\n")
+    parsed = parse_write_envelope(env)
+    assert len(parsed) == 1
+    assert parsed[0][0] == "builds/win.md"
