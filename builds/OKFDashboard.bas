@@ -5,12 +5,14 @@ Attribute VB_Name = "OKFDashboard"
 '  Run CreateOKFDashboard once to build the "OKF Dashboard" sheet.
 '  Re-run it at any time to reset the sheet (e.g. after importing
 '  into a new workbook).  The sheet itself has no persistent state —
-'  it is a pure UI layer over the three macros.
+'  it is a pure UI layer over the five macros.
 '
-'  Requires the other three modules in the same workbook:
-'    OKFWriteApply   ? ApplyOKFWrite
-'    OKFIndexGenerator ? GenerateOKFIndexes
-'    OKFLint         ? RunOKFLint
+'  Requires the other modules in the same workbook:
+'    OKFConfig         → BundleRootRaw, SetBundleRoot
+'    OKFWriteApply     → ApplyOKFWrite
+'    OKFIndexGenerator → GenerateOKFIndexes
+'    OKFLint           → RunOKFLint
+'    OKFContextBundle  → BuildContextBundle
 ' =====================================================================
 
 Option Explicit
@@ -26,7 +28,7 @@ Sub CreateOKFDashboard()
 
     If ws Is Nothing Then
         Set ws = ThisWorkbook.Sheets.Add(Before:=ThisWorkbook.Sheets(1))
-        ws.name = SHEET_NAME
+        ws.Name = SHEET_NAME
     Else
         ws.Cells.Clear
         Dim shp As Shape
@@ -36,7 +38,7 @@ Sub CreateOKFDashboard()
     End If
 
     ws.Activate
-    ActiveWindow.DisplayGridlines = False   ' ? changed from ws.DisplayGridlines
+    ActiveWindow.DisplayGridlines = False
 
     ' -- Column widths (in character units) ----------------------------------
     ws.Columns("A").ColumnWidth = 2      ' left margin
@@ -46,20 +48,29 @@ Sub CreateOKFDashboard()
     ws.Columns("E").ColumnWidth = 2      ' right margin
 
     ' -- Row heights (in points) ----------------------------------------------
-    ws.Rows("1").RowHeight = 10    ' top padding
-    ws.Rows("2").RowHeight = 32    ' title
-    ws.Rows("3").RowHeight = 16    ' subtitle
-    ws.Rows("4").RowHeight = 16    ' gap before first button
-    ws.Rows("5").RowHeight = 46    ' button 1
-    ws.Rows("6").RowHeight = 34    ' description 1
-    ws.Rows("7").RowHeight = 10    ' gap
-    ws.Rows("8").RowHeight = 46    ' button 2
-    ws.Rows("9").RowHeight = 34    ' description 2
-    ws.Rows("10").RowHeight = 10   ' gap
-    ws.Rows("11").RowHeight = 46   ' button 3
-    ws.Rows("12").RowHeight = 34   ' description 3
-    ws.Rows("13").RowHeight = 10   ' bottom padding
-    ws.Rows("14").RowHeight = 18   ' footer
+    ws.Rows("1").RowHeight  = 10    ' top padding
+    ws.Rows("2").RowHeight  = 32    ' title
+    ws.Rows("3").RowHeight  = 16    ' subtitle
+    ws.Rows("4").RowHeight  = 16    ' gap before first button
+    ws.Rows("5").RowHeight  = 46    ' button 1
+    ws.Rows("6").RowHeight  = 34    ' description 1
+    ws.Rows("7").RowHeight  = 10    ' gap
+    ws.Rows("8").RowHeight  = 46    ' button 2
+    ws.Rows("9").RowHeight  = 34    ' description 2
+    ws.Rows("10").RowHeight = 10    ' gap
+    ws.Rows("11").RowHeight = 46    ' button 3
+    ws.Rows("12").RowHeight = 34    ' description 3
+    ws.Rows("13").RowHeight = 20    ' section divider
+    ws.Rows("14").RowHeight = 46    ' button 4
+    ws.Rows("15").RowHeight = 34    ' description 4
+    ws.Rows("16").RowHeight = 10    ' gap
+    ws.Rows("17").RowHeight = 46    ' button 5
+    ws.Rows("18").RowHeight = 34    ' description 5
+    ws.Rows("19").RowHeight = 10    ' gap
+    ws.Rows("20").RowHeight = 18    ' root label
+    ws.Rows("21").RowHeight = 20    ' root display value
+    ws.Rows("22").RowHeight = 10    ' bottom padding
+    ws.Rows("23").RowHeight = 18    ' footer
 
     ' -- Background -----------------------------------------------------------
     ws.Cells.Interior.Color = RGB(248, 250, 252)
@@ -75,10 +86,8 @@ Sub CreateOKFDashboard()
 
     ' -- Subtitle -------------------------------------------------------------
     Set r = ws.Range("B3:D3"): r.Merge
-    ' NEW
     r.Value = "Workflow:  write change  " & ChrW(8594) & "  apply  " & _
-          ChrW(8594) & "  regenerate  " & ChrW(8594) & "  lint"
-
+              ChrW(8594) & "  regenerate  " & ChrW(8594) & "  lint"
     r.Font.Size = 9: r.Font.Color = RGB(100, 116, 139)
     r.VerticalAlignment = xlVAlignCenter
     r.Interior.Color = RGB(248, 250, 252)
@@ -89,7 +98,7 @@ Sub CreateOKFDashboard()
     r.Borders(xlEdgeBottom).Color = RGB(226, 232, 240)
     r.Borders(xlEdgeBottom).Weight = xlThin
 
-    ' -- Three macro buttons ---------------------------------------------------
+    ' -- Three portfolio buttons -----------------------------------------------
     MakeButton ws, 5, _
         "1 — Apply Write Envelope", "ApplyOKFWrite", RGB(37, 99, 235), _
         "Paste the Portfolio Writer's <VBA_WRITE> output to the clipboard, then click." & Chr(10) & _
@@ -105,10 +114,58 @@ Sub CreateOKFDashboard()
         "Scans the bundle: broken links, WIP violations, stalls, pending .proposed." & Chr(10) & _
         "Findings appear colour-coded in the ""OKF Lint Report"" sheet."
 
+    ' -- Section divider between portfolio tools and context tools -------------
+    Set r = ws.Range("B13:D13"): r.Merge
+    r.Interior.Color = RGB(241, 245, 249)
+    With r.Borders(xlEdgeBottom)
+        .LineStyle = xlContinuous
+        .Color = RGB(203, 213, 225)
+        .Weight = xlThin
+    End With
+
+    ' -- Two context-bundle buttons --------------------------------------------
+    MakeButton ws, 14, _
+        "4 — Build Context Bundle", "BuildContextBundle", RGB(109, 40, 217), _
+        "Copy a <CONTEXT_REQUEST> from DHSChat to the clipboard, then click." & Chr(10) & _
+        "Assembles OKF-context.md in the -dist folder for attaching to the next message."
+
+    MakeButton ws, 17, _
+        "5 — Set Bundle Root", "SetBundleRoot", RGB(71, 85, 105), _
+        "Opens a folder picker to set (or change) the bundle root path." & Chr(10) & _
+        "Stored in the registry — set once per machine, never edit the .bas files."
+
+    ' -- Current-root display -------------------------------------------------
+    Set r = ws.Range("B20:D20"): r.Merge
+    r.Value = "Current bundle root:"
+    r.Font.Size = 8: r.Font.Bold = True
+    r.Font.Color = RGB(71, 85, 105)
+    r.VerticalAlignment = xlVAlignCenter
+    r.Interior.Color = RGB(248, 250, 252)
+
+    Dim rootVal As String
+    rootVal = OKFConfig.BundleRootRaw()
+    If rootVal = "" Then rootVal = "(not set)"
+
+    Set r = ws.Range("B21:D21"): r.Merge
+    r.Value = rootVal
+    r.Font.Size = 9
+    r.Font.Color = IIf(rootVal = "(not set)", RGB(148, 163, 184), RGB(15, 23, 42))
+    r.VerticalAlignment = xlVAlignCenter
+    r.Interior.Color = RGB(241, 245, 249)
+    With r.Borders(xlEdgeBottom)
+        .LineStyle = xlContinuous
+        .Color = RGB(226, 232, 240)
+        .Weight = xlThin
+    End With
+    With r.Borders(xlEdgeLeft)
+        .LineStyle = xlContinuous
+        .Color = RGB(109, 40, 217)
+        .Weight = xlMedium
+    End With
+
     ' -- Footer ---------------------------------------------------------------
-    Set r = ws.Range("B14:D14"): r.Merge
-    r.Value = "Before first use: set BUNDLE_ROOT in OKFWriteApply.bas, " & _
-              "OKFIndexGenerator.bas, and OKFLint.bas."
+    Set r = ws.Range("B23:D23"): r.Merge
+    r.Value = "Before first use: click Set Bundle Root."
     r.Font.Size = 8: r.Font.Color = RGB(148, 163, 184)
     r.VerticalAlignment = xlVAlignCenter
     r.Interior.Color = RGB(248, 250, 252)
@@ -134,12 +191,12 @@ Private Sub MakeButton(ByVal ws As Worksheet, ByVal btnRow As Long, _
                                 cell.Width - INSET * 2, _
                                 cell.Height - INSET * 2)
     With s
-        .name = "btn_" & macroName
+        .Name = "btn_" & macroName
         .OnAction = macroName
 
         .Fill.ForeColor.RGB = btnColor
         .Fill.Solid
-        .line.Visible = msoFalse
+        .Line.Visible = msoFalse
 
         On Error Resume Next
         .Adjustments(1) = 0.18
@@ -188,4 +245,3 @@ Private Sub MakeButton(ByVal ws As Worksheet, ByVal btnRow As Long, _
         .Weight = xlMedium
     End With
 End Sub
-

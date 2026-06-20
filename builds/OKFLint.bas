@@ -26,16 +26,22 @@ Attribute VB_Name = "OKFLint"
 
 Option Explicit
 
-Private Const BUNDLE_ROOT As String = "C:\Users\YourName\OneDrive\build-portfolio\"
+Private m_BundleRoot As String
 Private Const STALE_DAYS  As Long   = 14
 
 Private fso As Object
 
 Sub RunOKFLint()
+    m_BundleRoot = OKFConfig.BundleRoot()
+    If m_BundleRoot = "" Then
+        MsgBox "Bundle root not set — click Set Bundle Root.", vbExclamation, "OKF Lint"
+        Exit Sub
+    End If
+
     Set fso = CreateObject("Scripting.FileSystemObject")
 
-    If Not fso.FolderExists(BUNDLE_ROOT) Then
-        MsgBox "Bundle root not found: " & BUNDLE_ROOT, vbCritical
+    If Not fso.FolderExists(m_BundleRoot) Then
+        MsgBox "Bundle root not found: " & m_BundleRoot, vbCritical, "OKF Lint"
         Exit Sub
     End If
 
@@ -58,10 +64,10 @@ End Sub
 
 Private Sub ScanBundle(ByVal findings As Collection)
     Dim buildsPath As String
-    buildsPath = BUNDLE_ROOT & "builds\"
+    buildsPath = m_BundleRoot & "builds\"
 
     If Not fso.FolderExists(buildsPath) Then
-        AddFinding findings, "error", "(bundle)", "builds\ directory not found at " & buildsPath
+        AddFinding findings, "error", "(bundle)", "builds/ directory not found at " & buildsPath
         Exit Sub
     End If
 
@@ -175,7 +181,7 @@ Private Sub ScanBundle(ByVal findings As Collection)
         AddFinding findings, "warning", CStr(staleArr(i)(1)), CStr(staleArr(i)(2))
     Next i
 
-    ScanProposed BUNDLE_ROOT, findings
+    ScanProposed m_BundleRoot, findings
 
     Dim archivedSet As Object
     Set archivedSet = CreateObject("Scripting.Dictionary")
@@ -245,8 +251,8 @@ End Sub
 
 
 Private Function MakeRelative(ByVal absPath As String) As String
-    If Left(absPath, Len(BUNDLE_ROOT)) = BUNDLE_ROOT Then
-        MakeRelative = Mid(absPath, Len(BUNDLE_ROOT) + 1)
+    If Left(absPath, Len(m_BundleRoot)) = m_BundleRoot Then
+        MakeRelative = Mid(absPath, Len(m_BundleRoot) + 1)
     Else
         MakeRelative = absPath
     End If
@@ -269,7 +275,7 @@ Private Function ResolveLink(ByVal link As String, ByVal fromFile As String) As 
 
     Dim normalized As String
     If Left(link, 1) = "/" Then
-        normalized = BUNDLE_ROOT & Replace(Mid(link, 2), "/", "\")
+        normalized = m_BundleRoot & Replace(Mid(link, 2), "/", "\")
     Else
         normalized = fso.GetParentFolderName(fromFile) & "\" & Replace(link, "/", "\")
     End If

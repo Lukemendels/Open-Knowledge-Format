@@ -28,8 +28,7 @@ Attribute VB_Name = "OKFIndexGenerator"
 
 Option Explicit
 
-' *** SET THIS before first run ***
-Private Const BUNDLE_ROOT As String = "C:\Users\YourName\OneDrive\build-portfolio\"
+Private m_BundleRoot As String
 Private Const OKF_VERSION As String = "0.1"
 
 ' --- Portfolio tuning ---
@@ -40,15 +39,21 @@ Private Const GROUP_ORDER As String = "working,boilerplate,spec,idea,parked,prod
 Private fso As Object
 
 Sub GenerateOKFIndexes()
+    m_BundleRoot = OKFConfig.BundleRoot()
+    If m_BundleRoot = "" Then
+        MsgBox "Bundle root not set — click Set Bundle Root.", vbExclamation, "OKF Index Generator"
+        Exit Sub
+    End If
+
     Set fso = CreateObject("Scripting.FileSystemObject")
 
-    If Not fso.FolderExists(BUNDLE_ROOT) Then
-        MsgBox "Bundle root not found: " & BUNDLE_ROOT, vbCritical
+    If Not fso.FolderExists(m_BundleRoot) Then
+        MsgBox "Bundle root not found: " & m_BundleRoot, vbCritical, "OKF Index Generator"
         Exit Sub
     End If
 
     Dim count As Long
-    count = ProcessDir(fso.GetFolder(BUNDLE_ROOT), True)
+    count = ProcessDir(fso.GetFolder(m_BundleRoot), True)
 
     MsgBox "Regenerated " & count & " index.md file(s).", vbInformation
 End Sub

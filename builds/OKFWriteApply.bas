@@ -22,16 +22,21 @@ Attribute VB_Name = "OKFWriteApply"
 
 Option Explicit
 
-Private Const BUNDLE_ROOT As String = "C:\Users\YourName\OneDrive\build-portfolio\"
+Private m_BundleRoot As String
 
 Private fso As Object
 
 Sub ApplyOKFWrite()
+    m_BundleRoot = OKFConfig.BundleRoot()
+    If m_BundleRoot = "" Then
+        MsgBox "Bundle root not set — click Set Bundle Root.", vbExclamation, "OKF Write Apply"
+        Exit Sub
+    End If
+
     Set fso = CreateObject("Scripting.FileSystemObject")
 
-    If Not fso.FolderExists(BUNDLE_ROOT) Then
-        MsgBox "Bundle root not found: " & BUNDLE_ROOT & vbLf & _
-               "Set BUNDLE_ROOT in OKFWriteApply.bas and OKFIndexGenerator.bas.", vbCritical
+    If Not fso.FolderExists(m_BundleRoot) Then
+        MsgBox "Bundle root not found: " & m_BundleRoot, vbCritical, "OKF Write Apply"
         Exit Sub
     End If
 
@@ -151,7 +156,7 @@ Private Function ResolvePath(ByVal relPath As String) As String
     p = Trim(relPath)
     p = Replace(p, "/", "\")
     If Left(p, 1) = "\" Then p = Mid(p, 2)
-    ResolvePath = BUNDLE_ROOT & p
+    ResolvePath = m_BundleRoot & p
 End Function
 
 
