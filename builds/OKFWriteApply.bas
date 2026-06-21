@@ -6,14 +6,16 @@ Attribute VB_Name = "OKFWriteApply"
 '  Portfolio Writer DHSChat Assistant), parses each ### FILE: block,
 '  and writes every file directly (creating parent dirs as needed).
 '
+'  Machine-owned files (log.md, index.md) are never overwritten by a
+'  write block. Every write is appended to the bundle-root log.md as
+'  an append-only audit trail: action = new | edit.
+'
 '  After applying, calls GenerateOKFIndexes so new builds appear in
 '  the index immediately.
 '
 '  Requires: OKFClipboard module (GetClipboardText), OKFConfig module,
 '  OKFIndexGenerator module.
 '  Microsoft ActiveX Data Objects 2.x (ADODB.Stream for UTF-8 I/O).
-'
-'  *** BUNDLE_ROOT must match the value in OKFIndexGenerator.bas ***
 ' =====================================================================
 
 Option Explicit
@@ -106,28 +108,69 @@ Sub ApplyOKFWrite()
 
     ' --- 4. Write all files (create parent dir if needed) ---
     Dim writeCount As Long: writeCount = 0
+    Dim skipCount As Long: skipCount = 0
+    Dim logLines As String: logLines = ""
 
     Dim i As Long
+    Dim leaf As String
+    Dim absPath As String
+    Dim existed As Boolean
+    Dim parentDir As String
+    Dim action As String
+    Dim relFwd As String
+
     For i = 0 To fileCount - 1
-        Dim absPath As String
-        absPath = ResolvePath(filePaths(i))
+        ' Guard: never overwrite machine-owned files.
+        leaf = LCase(fso.GetFileName(filePaths(i)))
+        If leaf = "log.md" Or leaf = "index.md" Then
+            skipCount = skipCount + 1
+        Else
+            absPath = ResolvePath(filePaths(i))
+            existed = fso.FileExists(absPath)
 
-        Dim parentDir As String
-        parentDir = fso.GetParentFolderName(absPath)
-        If Not fso.FolderExists(parentDir) Then
-            fso.CreateFolder parentDir
+            parentDir = fso.GetParentFolderName(absPath)
+            If Not fso.FolderExists(parentDir) Then fso.CreateFolder parentDir
+
+            WriteUtf8 absPath, fileContents(i)
+            writeCount = writeCount + 1
+
+            action = IIf(existed, "edit", "new")
+            relFwd = Replace(filePaths(i), "\", "/")
+            If Left(relFwd, 1) = "/" Then relFwd = Mid(relFwd, 2)
+            logLines = logLines & "- " & Format(Now, "yyyy-mm-dd hh:nn:ss") & _
+                       "  " & action & "  " & relFwd & vbLf
         End If
-
-        WriteUtf8 absPath, fileContents(i)
-        writeCount = writeCount + 1
     Next i
 
-    ' --- 5. Summary ---
-    MsgBox writeCount & " file(s) written.", vbInformation, "OKF Write Apply"
+    ' --- 5. Append one batch of log entries ---
+    If logLines <> "" Then AppendEditLog logLines
 
-    ' --- 6. Regenerate index so new builds appear immediately ---
+    ' --- 6. Summary ---
+    Dim summary As String
+    summary = writeCount & " file(s) written. Logged to log.md."
+    If skipCount > 0 Then
+        summary = summary & vbLf & skipCount & " reserved file(s) skipped (log.md / index.md)."
+    End If
+    MsgBox summary, vbInformation, "OKF Write Apply"
+
+    ' --- 7. Regenerate index so new builds appear immediately ---
     GenerateOKFIndexes
 
+End Sub
+
+
+Private Sub AppendEditLog(ByVal entries As String)
+    Dim logPath As String
+    logPath = m_BundleRoot & "log.md"
+
+    Dim existing As String
+    If fso.FileExists(logPath) Then
+        existing = ReadUtf8(logPath)
+    Else
+        existing = "# Log" & vbLf & vbLf
+    End If
+
+    WriteUtf8 logPath, existing & entries
 End Sub
 
 

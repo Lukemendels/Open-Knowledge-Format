@@ -102,7 +102,7 @@ Sub CreateOKFDashboard()
     MakeButton ws, 5, _
         "1 - Apply Write Envelope", "ApplyOKFWrite", RGB(37, 99, 235), _
         "Paste the Portfolio Writer's <VBA_WRITE> output to the clipboard, then click." & Chr(10) & _
-        "Writes all files directly."
+        "Writes/overwrites files directly; every edit is recorded in log.md."
 
     MakeButton ws, 8, _
         "2 - Regenerate Index", "GenerateOKFIndexes", RGB(22, 163, 74), _
