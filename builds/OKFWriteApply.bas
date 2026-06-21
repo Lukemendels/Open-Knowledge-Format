@@ -16,6 +16,11 @@ Attribute VB_Name = "OKFWriteApply"
 '  Requires: OKFClipboard module (GetClipboardText), OKFConfig module,
 '  OKFIndexGenerator module.
 '  Microsoft ActiveX Data Objects 2.x (ADODB.Stream for UTF-8 I/O).
+'
+'  OKFConfig         -> BundleRoot, BundleRootRaw, SetBundleRoot
+'  OKFWriteApply     -> ApplyOKFWrite, ApplyWriteEnvelopeText
+'  OKFIndexGenerator -> GenerateOKFIndexes
+'  OKFBootstrap      -> BootstrapBundle
 ' =====================================================================
 
 Option Explicit
@@ -25,48 +30,48 @@ Private m_BundleRoot As String
 Private fso As Object
 
 
-Sub ApplyOKFWrite()
+' Parses a <VBA_WRITE> envelope string, writes its ### FILE blocks (honoring the
+' index.md/log.md reserved guard), logs each write to log.md, and returns a
+' summary string "(N written, M skipped)". Self-contained: sets m_BundleRoot
+' from OKFConfig.BundleRoot() so the private helpers (ResolvePath / WriteUtf8 /
+' AppendEditLog) work regardless of caller.
+Public Function ApplyWriteEnvelopeText(ByVal envelope As String, _
+                                        ByRef writeCount As Long, _
+                                        ByRef skipCount As Long) As Boolean
     m_BundleRoot = OKFConfig.BundleRoot()
     If m_BundleRoot = "" Then
         MsgBox "Bundle root not set - click Set Bundle Root.", vbExclamation, "OKF Write Apply"
-        Exit Sub
+        ApplyWriteEnvelopeText = False
+        Exit Function
     End If
 
     Set fso = CreateObject("Scripting.FileSystemObject")
 
     If Not fso.FolderExists(m_BundleRoot) Then
         MsgBox "Bundle root not found: " & m_BundleRoot, vbCritical, "OKF Write Apply"
-        Exit Sub
+        ApplyWriteEnvelopeText = False
+        Exit Function
     End If
 
-    ' --- 1. Read clipboard ---
-    Dim clip As String
-    On Error Resume Next
-    clip = ReadClipboard()
-    On Error GoTo 0
-    If clip = "" Then
-        MsgBox "Clipboard is empty. Copy the Portfolio Writer's output and try again.", vbExclamation
-        Exit Sub
-    End If
+    ' --- Normalise line endings before searching ---
+    Dim body As String
+    body = Replace(Replace(envelope, vbCrLf, vbLf), vbCr, vbLf)
 
-    ' --- 2. Require <VBA_WRITE> block ---
-    ' Normalise line endings before searching.
-    clip = Replace(Replace(clip, vbCrLf, vbLf), vbCr, vbLf)
-
+    ' --- Require <VBA_WRITE> block ---
     Dim startPos As Long, endPos As Long
-    startPos = InStr(clip, "<VBA_WRITE>")
-    endPos = InStr(clip, "</VBA_WRITE>")
+    startPos = InStr(body, "<VBA_WRITE>")
+    endPos = InStr(body, "</VBA_WRITE>")
     If startPos = 0 Or endPos = 0 Or endPos <= startPos Then
         MsgBox "No <VBA_WRITE> block found in clipboard." & vbLf & _
                "Copy the Portfolio Writer's full output and try again.", vbExclamation
-        Exit Sub
+        ApplyWriteEnvelopeText = False
+        Exit Function
     End If
 
-    Dim body As String
     Dim tagLen As Long: tagLen = Len("<VBA_WRITE>")
-    body = Mid(clip, startPos + tagLen, endPos - (startPos + tagLen))
+    body = Mid(body, startPos + tagLen, endPos - (startPos + tagLen))
 
-    ' --- 3. Parse ### FILE: ... ### END FILE pairs ---
+    ' --- Parse ### FILE: ... ### END FILE pairs ---
     Dim filePaths(0 To 99) As String
     Dim fileContents(0 To 99) As String
     Dim fileCount As Long: fileCount = 0
@@ -103,12 +108,13 @@ Sub ApplyOKFWrite()
 
     If fileCount = 0 Then
         MsgBox "No ### FILE: blocks found inside <VBA_WRITE>. Nothing to apply.", vbExclamation
-        Exit Sub
+        ApplyWriteEnvelopeText = False
+        Exit Function
     End If
 
-    ' --- 4. Write all files (create parent dir if needed) ---
-    Dim writeCount As Long: writeCount = 0
-    Dim skipCount As Long: skipCount = 0
+    ' --- Write all files (create parent dir if needed) ---
+    writeCount = 0
+    skipCount = 0
     Dim logLines As String: logLines = ""
 
     Dim i As Long
@@ -142,20 +148,51 @@ Sub ApplyOKFWrite()
         End If
     Next i
 
-    ' --- 5. Append one batch of log entries ---
+    ' --- Append one batch of log entries ---
     If logLines <> "" Then AppendEditLog logLines
 
-    ' --- 6. Summary ---
-    Dim summary As String
-    summary = writeCount & " file(s) written. Logged to log.md."
-    If skipCount > 0 Then
-        summary = summary & vbLf & skipCount & " reserved file(s) skipped (log.md / index.md)."
+    ApplyWriteEnvelopeText = True
+End Function
+
+
+Sub ApplyOKFWrite()
+    ' Early root + folder check so the clipboard is never read unnecessarily.
+    Dim rootCheck As String
+    rootCheck = OKFConfig.BundleRoot()
+    If rootCheck = "" Then
+        MsgBox "Bundle root not set - click Set Bundle Root.", vbExclamation, "OKF Write Apply"
+        Exit Sub
     End If
-    MsgBox summary, vbInformation, "OKF Write Apply"
 
-    ' --- 7. Regenerate index so new builds appear immediately ---
-    GenerateOKFIndexes
+    Set fso = CreateObject("Scripting.FileSystemObject")
 
+    If Not fso.FolderExists(rootCheck) Then
+        MsgBox "Bundle root not found: " & rootCheck, vbCritical, "OKF Write Apply"
+        Exit Sub
+    End If
+
+    ' --- Read clipboard ---
+    Dim clip As String
+    On Error Resume Next
+    clip = ReadClipboard()
+    On Error GoTo 0
+    If clip = "" Then
+        MsgBox "Clipboard is empty. Copy the Portfolio Writer's output and try again.", vbExclamation
+        Exit Sub
+    End If
+
+    Dim w As Long, s As Long
+    If ApplyWriteEnvelopeText(clip, w, s) Then
+        Dim summary As String
+        summary = w & " file(s) written. Logged to log.md."
+        If s > 0 Then
+            summary = summary & vbLf & s & " reserved file(s) skipped (log.md / index.md)."
+        End If
+        MsgBox summary, vbInformation, "OKF Write Apply"
+
+        ' Regenerate index so new builds appear immediately.
+        GenerateOKFIndexes
+    End If
 End Sub
 
 
@@ -189,7 +226,6 @@ Private Function ReadClipboard() As String
     Exit Function
 
 FailSafe:
-    ' If anything goes wrong, return empty string so caller can handle.
     ReadClipboard = ""
 End Function
 

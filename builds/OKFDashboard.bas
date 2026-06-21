@@ -5,14 +5,15 @@ Attribute VB_Name = "OKFDashboard"
 '  Run CreateOKFDashboard once to build the "OKF Dashboard" sheet.
 '  Re-run it at any time to reset the sheet (e.g. after importing
 '  into a new workbook).  The sheet itself has no persistent state -
-'  it is a pure UI layer over the five macros.
+'  it is a pure UI layer over the six macros.
 '
 '  Requires the other modules in the same workbook:
 '    OKFConfig         -> BundleRootRaw, SetBundleRoot
-'    OKFWriteApply     -> ApplyOKFWrite
+'    OKFWriteApply     -> ApplyOKFWrite, ApplyWriteEnvelopeText
 '    OKFIndexGenerator -> GenerateOKFIndexes
 '    OKFLint           -> RunOKFLint
 '    OKFContextBundle  -> BuildContextBundle
+'    OKFBootstrap      -> BootstrapBundle
 ' =====================================================================
 
 Option Explicit
@@ -67,10 +68,13 @@ Sub CreateOKFDashboard()
     ws.Rows("17").RowHeight = 46    ' button 5
     ws.Rows("18").RowHeight = 34    ' description 5
     ws.Rows("19").RowHeight = 10    ' gap
-    ws.Rows("20").RowHeight = 18    ' root label
-    ws.Rows("21").RowHeight = 20    ' root display value
-    ws.Rows("22").RowHeight = 10    ' bottom padding
-    ws.Rows("23").RowHeight = 18    ' footer
+    ws.Rows("20").RowHeight = 46    ' button 6
+    ws.Rows("21").RowHeight = 34    ' description 6
+    ws.Rows("22").RowHeight = 10    ' gap
+    ws.Rows("23").RowHeight = 18    ' root label
+    ws.Rows("24").RowHeight = 20    ' root display value
+    ws.Rows("25").RowHeight = 10    ' bottom padding
+    ws.Rows("26").RowHeight = 18    ' footer
 
     ' -- Background -----------------------------------------------------------
     ws.Cells.Interior.Color = RGB(248, 250, 252)
@@ -134,8 +138,13 @@ Sub CreateOKFDashboard()
         "Opens a folder picker to set (or change) the bundle root path." & Chr(10) & _
         "Stored in the registry - set once per machine, never edit the .bas files."
 
+    MakeButton ws, 20, _
+        "6 - Initialize Bundle", "BootstrapBundle", RGB(5, 150, 105), _
+        "Creates the starter concepts in a new or partial bundle root." & Chr(10) & _
+        "Idempotent: only writes files that don't exist. Run after Set Bundle Root."
+
     ' -- Current-root display -------------------------------------------------
-    Set r = ws.Range("B20:D20"): r.Merge
+    Set r = ws.Range("B23:D23"): r.Merge
     r.Value = "Current bundle root:"
     r.Font.Size = 8: r.Font.Bold = True
     r.Font.Color = RGB(71, 85, 105)
@@ -146,7 +155,7 @@ Sub CreateOKFDashboard()
     rootVal = OKFConfig.BundleRootRaw()
     If rootVal = "" Then rootVal = "(not set)"
 
-    Set r = ws.Range("B21:D21"): r.Merge
+    Set r = ws.Range("B24:D24"): r.Merge
     r.Value = rootVal
     r.Font.Size = 9
     r.Font.Color = IIf(rootVal = "(not set)", RGB(148, 163, 184), RGB(15, 23, 42))
@@ -164,8 +173,8 @@ Sub CreateOKFDashboard()
     End With
 
     ' -- Footer ---------------------------------------------------------------
-    Set r = ws.Range("B23:D23"): r.Merge
-    r.Value = "Before first use: click Set Bundle Root."
+    Set r = ws.Range("B26:D26"): r.Merge
+    r.Value = "Before first use: click Set Bundle Root, then Initialize Bundle."
     r.Font.Size = 8: r.Font.Color = RGB(148, 163, 184)
     r.VerticalAlignment = xlVAlignCenter
     r.Interior.Color = RGB(248, 250, 252)
