@@ -63,6 +63,26 @@ def compute_operations(
     return ops
 
 
+def compute_log_entries(
+    parsed_files: list[tuple[str, str]],
+    existing_files: set[str],
+) -> list[tuple[str, str]]:
+    """
+    Classify each parsed file for the audit log.
+
+    Returns (action, path) pairs: 'edit' if path is in existing_files,
+    'new' otherwise.  Machine-owned files (log.md, index.md) are skipped.
+    """
+    entries = []
+    for path, _ in parsed_files:
+        leaf = path.replace("\\", "/").split("/")[-1].lower()
+        if leaf in ("log.md", "index.md"):
+            continue
+        action = "edit" if path in existing_files else "new"
+        entries.append((action, path))
+    return entries
+
+
 # -- Shared fixture content ---------------------------------------------------------------
 
 _CONTENTS_A = """\
@@ -247,3 +267,43 @@ def test_crlf_envelope_normalised() -> None:
     parsed = parse_write_envelope(env)
     assert len(parsed) == 1
     assert parsed[0][0] == "builds/win.md"
+
+
+# -- compute_log_entries tests -----------------------------------------------------------
+
+def test_log_entries_new_file() -> None:
+    parsed = [("builds/new.md", _CONTENTS_A)]
+    entries = compute_log_entries(parsed, set())
+    assert entries == [("new", "builds/new.md")]
+
+
+def test_log_entries_existing_file_is_edit() -> None:
+    parsed = [("builds/existing.md", _CONTENTS_A)]
+    entries = compute_log_entries(parsed, {"builds/existing.md"})
+    assert entries == [("edit", "builds/existing.md")]
+
+
+def test_log_entries_skips_log_md() -> None:
+    parsed = [("log.md", "# Log\n"), ("builds/new.md", _CONTENTS_A)]
+    entries = compute_log_entries(parsed, set())
+    assert entries == [("new", "builds/new.md")]
+
+
+def test_log_entries_skips_index_md() -> None:
+    parsed = [("builds/index.md", "# index\n"), ("builds/new.md", _CONTENTS_A)]
+    entries = compute_log_entries(parsed, set())
+    assert entries == [("new", "builds/new.md")]
+
+
+def test_log_entries_mixed_batch() -> None:
+    parsed = [
+        ("builds/alpha.md", _CONTENTS_A),
+        ("builds/beta.md", _CONTENTS_B),
+        ("log.md", "# Log\n"),
+        ("index.md", "# root\n"),
+    ]
+    entries = compute_log_entries(parsed, {"builds/beta.md"})
+    assert entries == [
+        ("new", "builds/alpha.md"),
+        ("edit", "builds/beta.md"),
+    ]
