@@ -12,14 +12,15 @@ Attribute VB_Name = "OKFIndexGenerator"
 '    - Entries include the description from the linked concept's frontmatter.
 '    - Reserved filenames (index.md, log.md) are never listed as concepts.
 '
-'  Design choices:
-'    - Concepts are grouped under a heading per GROUP_BY (set to `status` for the
-'      portfolio), so the index reads like a lifecycle board.
-'    - Group headings follow GROUP_ORDER (working first), then any extras alpha.
-'    - The STALL_GROUP ("working") is sorted oldest-last_touched first and shows
+'  Grouping is inferred from the concepts' own frontmatter (not declared):
+'    - The first field in GROUP_BY_CANDIDATES that any concept in the folder
+'      carries wins as the grouping axis -> lifecycle board with headings.
+'    - If no candidate field is present in any concept -> one flat alphabetical
+'      list, no group headings (e.g. skills/ folder which carries no status).
+'    - Group headings follow GROUP_ORDER, then any extras alpha.
+'    - The STALL_GROUP ("working") sorts oldest-last_touched first and shows
 '      the date inline, so stalled builds float to the top of the active section.
-'    - Other groups sort by title for stable, reviewable git diffs.
-'    - Subdirectories listed under a "# Subdirectories" heading per the Sec.6 example.
+'    - Subdirectories listed under a "# Subdirectories" heading per Sec.6.
 '    - UTF-8 in and out (SPEC Sec.4: concepts are UTF-8 markdown).
 '
 '  Requires (Tools -> References): Microsoft ActiveX Data Objects 2.x
@@ -31,8 +32,12 @@ Option Explicit
 Private m_BundleRoot As String
 Private Const OKF_VERSION As String = "0.1"
 
-' --- Portfolio tuning ---
-Private Const GROUP_BY As String = "status"      ' frontmatter field to group concepts under
+' --- Grouping candidates (EXTENSION SEAM) ---
+' Ordered list of fields the generator can group by; first one PRESENT in a
+' folder's concepts wins. None present -> flat alphabetical list, no headings.
+' EXTENSION SEAM: append a field name (e.g. "domain") to support a new axis
+' without per-folder config. See _meta/okf-roadmap.md before adding one.
+Private Const GROUP_BY_CANDIDATES As String = "status"   ' extend: "status,domain"
 Private Const STALL_GROUP As String = "working"  ' this group sorts oldest-last_touched first
 Private Const GROUP_ORDER As String = "working,boilerplate,spec,idea,parked,production,archived"
 
@@ -61,47 +66,55 @@ End Sub
 
 ' Returns count of index files written (this dir + all descendants).
 Private Function ProcessDir(ByVal folder As Object, ByVal isRoot As Boolean) As Long
-    Dim written As Long
-    written = 0
+    Dim written As Long: written = 0
 
-    ' group value -> Collection of Array(sortKey, displayLine)
-    Dim byGroup As Object
-    Set byGroup = CreateObject("Scripting.Dictionary")
-    byGroup.CompareMode = vbTextCompare
+    ' --- Phase 1: collect concept data into parallel arrays ---
+    Const MAX_C As Long = 499
+    Dim cNm(0 To MAX_C) As String
+    Dim cTi(0 To MAX_C) As String
+    Dim cDe(0 To MAX_C) As String
+    Dim cSt(0 To MAX_C) As String
+    Dim cLT(0 To MAX_C) As String
+    Dim cc As Long: cc = 0
 
-    ' --- concept files in this directory ---
     Dim f As Object
     For Each f In folder.Files
-        Dim nm As String
-        nm = f.Name
-        If IsConceptFile(nm) Then
-            Dim cType As String, cTitle As String, cDesc As String
-            Dim cStatus As String, cLastTouched As String
-            ParseFrontmatter ReadUtf8(f.path), cType, cTitle, cDesc, cStatus, cLastTouched
-
-            If cTitle = "" Then cTitle = BaseName(nm)        ' SPEC Sec.4.1: derive title from filename
-
-            Dim grp As String
-            If LCase(GROUP_BY) = "status" Then grp = cStatus Else grp = cType
-            If grp = "" Then grp = "(unset)"
-
-            Dim line As String
-            line = "* [" & cTitle & "](" & nm & ")"          ' relative link, same directory
-            If cDesc <> "" Then line = line & " - " & cDesc
-
-            Dim sortKey As String
-            If LCase(grp) = LCase(STALL_GROUP) Then
-                ' show staleness inline; oldest (or never-touched) floats to top
-                line = line & "  _(last touched " & IIf(cLastTouched = "", "never", cLastTouched) & ")_"
-                sortKey = IIf(cLastTouched = "", "0000-00-00", cLastTouched)
-            Else
-                sortKey = LCase(cTitle)
-            End If
-
-            If Not byGroup.Exists(grp) Then byGroup.Add grp, New Collection
-            byGroup(grp).Add Array(sortKey, line)
+        If IsConceptFile(f.Name) And cc <= MAX_C Then
+            Dim cType As String, ti As String, de As String, st As String, lt As String
+            ParseFrontmatter ReadUtf8(f.path), cType, ti, de, st, lt
+            If ti = "" Then ti = BaseName(f.Name)   ' SPEC Sec.4.1: derive title from filename
+            cNm(cc) = f.Name: cTi(cc) = ti: cDe(cc) = de
+            cSt(cc) = st: cLT(cc) = lt
+            cc = cc + 1
         End If
     Next f
+
+    ' --- Phase 2: detect grouping field ---
+    ' First candidate in GROUP_BY_CANDIDATES present in ANY concept wins.
+    ' None present -> groupField = "" -> flat alphabetical list.
+    Dim groupField As String: groupField = ""
+    Dim candidates() As String: candidates = Split(GROUP_BY_CANDIDATES, ",")
+    Dim ci As Long, k As Long
+    Dim found As Boolean: found = False
+
+    For ci = 0 To UBound(candidates)
+        If found Then Exit For
+        Dim cand As String: cand = Trim(candidates(ci))
+        If cand <> "" Then
+            For k = 0 To cc - 1
+                Dim fv As String
+                Select Case LCase(cand)
+                    Case "status": fv = cSt(k)
+                    Case Else: fv = ""   ' future: map additional fields here
+                End Select
+                If fv <> "" Then
+                    groupField = cand
+                    found = True
+                    Exit For
+                End If
+            Next k
+        End If
+    Next ci
 
     ' --- subdirectories ---
     Dim subdirs As Collection
@@ -111,37 +124,84 @@ Private Function ProcessDir(ByVal folder As Object, ByVal isRoot As Boolean) As 
         subdirs.Add d
     Next d
 
-    ' --- assemble index.md body ---
-    Dim sb As String
-    sb = ""
+    ' --- Phase 3: assemble index.md body ---
+    Dim sb As String: sb = ""
 
     If isRoot Then
         ' Only permitted frontmatter in any index.md (SPEC Sec.11).
         sb = "---" & vbLf & "okf_version: """ & OKF_VERSION & """" & vbLf & "---" & vbLf & vbLf
     End If
 
-    ' Concept sections, group headings in lifecycle order, then alpha for the rest.
-    If byGroup.count > 0 Then
-        Dim groupKeys() As String
-        groupKeys = OrderedGroupKeys(byGroup)
+    If cc > 0 Then
+        If groupField = "" Then
+            ' Flat alphabetical list -- no group headings.
+            Dim flatColl As Collection
+            Set flatColl = New Collection
+            For k = 0 To cc - 1
+                Dim fLine As String
+                fLine = "* [" & cTi(k) & "](" & cNm(k) & ")"
+                If cDe(k) <> "" Then fLine = fLine & " - " & cDe(k)
+                flatColl.Add Array(LCase(cTi(k)), fLine)
+            Next k
+            Dim flatLines() As String
+            flatLines = SortedEntryLines(flatColl)
+            Dim fl As Long
+            For fl = 0 To UBound(flatLines)
+                sb = sb & flatLines(fl) & vbLf
+            Next fl
+            sb = sb & vbLf
 
-        Dim i As Long
-        For i = 0 To UBound(groupKeys)
-            If groupKeys(i) <> "" Then
-                sb = sb & "# " & groupKeys(i) & vbLf
-                Dim entries() As String
-                entries = SortedEntryLines(byGroup(groupKeys(i)))
-                Dim j As Long
-                For j = 0 To UBound(entries)
-                    sb = sb & entries(j) & vbLf
-                Next j
-                sb = sb & vbLf
-            End If
-        Next i
+        Else
+            ' Grouped under headings (lifecycle-board behavior).
+            Dim byGroup As Object
+            Set byGroup = CreateObject("Scripting.Dictionary")
+            byGroup.CompareMode = vbTextCompare
+
+            For k = 0 To cc - 1
+                Dim grpVal As String
+                Select Case LCase(groupField)
+                    Case "status": grpVal = cSt(k)
+                    Case Else: grpVal = ""
+                End Select
+                If grpVal = "" Then grpVal = "(unset)"
+
+                Dim gLine As String
+                gLine = "* [" & cTi(k) & "](" & cNm(k) & ")"
+                If cDe(k) <> "" Then gLine = gLine & " - " & cDe(k)
+
+                Dim sortKey As String
+                If LCase(grpVal) = LCase(STALL_GROUP) Then
+                    ' show staleness inline; oldest (or never-touched) floats to top
+                    gLine = gLine & "  _(last touched " & IIf(cLT(k) = "", "never", cLT(k)) & ")_"
+                    sortKey = IIf(cLT(k) = "", "0000-00-00", cLT(k))
+                Else
+                    sortKey = LCase(cTi(k))
+                End If
+
+                If Not byGroup.Exists(grpVal) Then byGroup.Add grpVal, New Collection
+                byGroup(grpVal).Add Array(sortKey, gLine)
+            Next k
+
+            Dim groupKeys() As String
+            groupKeys = OrderedGroupKeys(byGroup)
+            Dim gi As Long
+            For gi = 0 To UBound(groupKeys)
+                If groupKeys(gi) <> "" Then
+                    sb = sb & "# " & groupKeys(gi) & vbLf
+                    Dim gEntries() As String
+                    gEntries = SortedEntryLines(byGroup(groupKeys(gi)))
+                    Dim ge As Long
+                    For ge = 0 To UBound(gEntries)
+                        sb = sb & gEntries(ge) & vbLf
+                    Next ge
+                    sb = sb & vbLf
+                End If
+            Next gi
+        End If
     End If
 
     ' Subdirectories section.
-    If subdirs.count > 0 Then
+    If subdirs.Count > 0 Then
         sb = sb & "# Subdirectories" & vbLf
         Dim sdNames() As String
         sdNames = SubfolderNamesSorted(subdirs)
@@ -254,10 +314,10 @@ Private Function OrderedGroupKeys(ByVal dict As Object) As String()
 
     Dim leftover() As String, rc As Long: rc = 0
     ReDim leftover(0 To dict.count)
-    Dim k As Variant
-    For Each k In dict.Keys
-        If Not used.Exists(CStr(k)) Then leftover(rc) = CStr(k): rc = rc + 1
-    Next k
+    Dim kk As Variant
+    For Each kk In dict.Keys
+        If Not used.Exists(CStr(kk)) Then leftover(rc) = CStr(kk): rc = rc + 1
+    Next kk
     If rc > 0 Then
         ReDim Preserve leftover(0 To rc - 1)
         SortStringArray leftover
