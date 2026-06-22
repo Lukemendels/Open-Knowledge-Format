@@ -23,6 +23,9 @@ Private Const REG_APP          As String = "StickShift"
 Private Const REG_SECTION      As String = "Config"
 Private Const REG_KEY          As String = "BundleRoot"
 
+' -- Constant shims: keep this module portable under pure late binding --
+Private Const msoFileDialogFolderPicker As Long = 4
+
 
 Public Function BundleRoot() As String
     Dim root As String
