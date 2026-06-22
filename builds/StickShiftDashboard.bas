@@ -29,6 +29,17 @@ Private Const SHEET_NAME As String = "StickShift"
 
 
 Sub CreateStickShiftDashboard()
+    ' -- Remove the legacy "OKF Dashboard" sheet if it is still present -----------
+    Dim oldWs As Worksheet
+    On Error Resume Next
+    Set oldWs = ThisWorkbook.Sheets("OKF Dashboard")
+    On Error GoTo 0
+    If Not oldWs Is Nothing Then
+        Application.DisplayAlerts = False
+        oldWs.Delete
+        Application.DisplayAlerts = True
+    End If
+
     ' -- Get or create the sheet --------------------------------------------------
     Dim ws As Worksheet
     On Error Resume Next
@@ -292,89 +303,89 @@ Public Sub ShowStickShiftReadme()
     ws.Columns("C").ColumnWidth = 3
 
     Dim readmeText As String
-    readmeText = _
-        "StickShift " & ChrW(8212) & " READ ME FIRST" & vbLf & _
-        "Everything automatic AI promises " & ChrW(8212) & " except your hand" & Chr(39) & "s on the StickShift." & vbLf & vbLf & _
-        "A manual-activation knowledge agent. It runs entirely inside this workbook." & vbLf & vbLf & _
-        String(60, "-") & vbLf & _
-        "WHAT THIS IS" & vbLf & _
-        String(60, "-") & vbLf & _
-        "This connects your AI chat to a folder of markdown notes (a " & Chr(34) & "context" & Chr(34) & ")." & vbLf & _
-        "The AI asks for context, or proposes file edits. You copy what it gives you," & vbLf & _
-        "click a button here, and the workbook does the work." & vbLf & vbLf & _
-        "Nothing runs on its own. Nothing happens until you click. You stay in the loop." & vbLf & vbLf & _
-        String(60, "-") & vbLf & _
-        "YOUR CONTEXT  (the bar at the top)" & vbLf & _
-        String(60, "-") & vbLf & _
-        "The top of the dashboard shows your current context - the folder StickShift is" & vbLf & _
-        "pointed at right now. The " & Chr(34) & "Switch Context" & Chr(34) & " button changes it." & vbLf & vbLf & _
-        "You can keep more than one: a personal context, a shared team context, a" & vbLf & _
-        "per-project context. Switch between them anytime; StickShift remembers the last" & vbLf & _
-        "one per machine." & vbLf & vbLf & _
-        String(60, "-") & vbLf & _
-        "SET UP - TWO CLICKS" & vbLf & _
-        String(60, "-") & vbLf & _
-        "1. Enable macros: when the file opens, click the yellow bar at the top" & vbLf & _
-        "   (" & Chr(34) & "Enable Content" & Chr(34) & ")." & vbLf & _
-        "   (If you see a red " & Chr(34) & "macros have been blocked" & Chr(34) & " bar instead: close Excel," & vbLf & _
-        "   right-click the file -> Properties -> tick " & Chr(34) & "Unblock" & Chr(34) & " -> OK, then reopen.)" & vbLf & vbLf & _
-        "2. Set your context: click " & Chr(34) & "Switch Context" & Chr(34) & " in the top bar and pick (or make) a" & vbLf & _
-        "   folder - for example C:\StickShift. The name doesn" & Chr(39) & "t matter; the tool" & vbLf & _
-        "   remembers the path." & vbLf & vbLf & _
-        "3. Click button 1, " & Chr(34) & "Initialize Context" & Chr(34) & ". This seeds the starter files -" & vbLf & _
-        "   including a skill that teaches the AI how to write more skills - and builds" & vbLf & _
-        "   the listings the AI reads. That" & Chr(39) & "s setup done." & vbLf & vbLf & _
-        "   (Switching to a context someone already set up? Skip step 3 - just start" & vbLf & _
-        "   using it.)" & vbLf & vbLf & _
-        String(60, "-") & vbLf & _
-        "THE LOOP - THIS IS THE WHOLE THING" & vbLf & _
-        String(60, "-") & vbLf & _
-        "   copy from chat  ->  click a button here  ->  get the result  ->  back to chat" & vbLf & vbLf & _
-        "Two buttons do the real work:" & vbLf & vbLf & _
-        "   Button 2 - BUILD CONTEXT BUNDLE" & vbLf & _
-        "     Use when the AI replies with a <CONTEXT_REQUEST> block." & vbLf & _
-        "     Copy the whole block, click button 2, and the assembled context opens as" & vbLf & _
-        "     StickShift-context.md. Paste that back into the chat." & vbLf & vbLf & _
-        "   Button 3 - APPLY WRITE ENVELOPE" & vbLf & _
-        "     Use when the AI replies with a <VBA_WRITE> block (file edits)." & vbLf & _
-        "     Copy it, click button 3, and the files are written into your context." & vbLf & _
-        "     Every write is recorded in log.md, so you can always see what changed." & vbLf & vbLf & _
-        String(60, "-") & vbLf & _
-        "TRY THIS FIRST - your first round-trips" & vbLf & _
-        String(60, "-") & vbLf & _
-        "Your context comes seeded with a " & Chr(34) & "skill" & Chr(34) & " - a reusable procedure the AI can pick" & vbLf & _
-        "up and follow. This one teaches the AI how to write more skills. So your first" & vbLf & _
-        "session is: watch it find the skill, then use it to make your own." & vbLf & vbLf & _
-        "ROUND-TRIP 1 - see retrieval work:" & vbLf & _
-        "1. In your AI chat, ask: " & Chr(34) & "What skills are in my context?" & Chr(34) & vbLf & _
-        "2. The AI replies with a <CONTEXT_REQUEST> block - that" & Chr(39) & "s it asking to look in" & vbLf & _
-        "   the folder. Copy the whole block." & vbLf & _
-        "3. Click button 2, " & Chr(34) & "Build Context Bundle" & Chr(34) & ". StickShift-context.md opens. Paste" & vbLf & _
-        "   its contents back into the chat." & vbLf & _
-        "4. The AI now lists your skills - including " & Chr(34) & "Skill MD Authoring" & Chr(34) & "." & vbLf & vbLf & _
-        "ROUND-TRIP 2 - make something of your own:" & vbLf & _
-        "5. Ask: " & Chr(34) & "Use the skill-authoring skill to help me write a new skill for" & vbLf & _
-        "   <a task you actually do>." & Chr(34) & vbLf & _
-        "6. The AI may ask for the full procedure first (another <CONTEXT_REQUEST> - same" & vbLf & _
-        "   button 2). Then it walks you through it and hands you a <VBA_WRITE> block." & vbLf & _
-        "7. Copy that block, click button 3, " & Chr(34) & "Apply Write Envelope" & Chr(34) & "." & vbLf & _
-        "8. Open your skills folder - your new skill is there. Open log.md - the write is" & vbLf & _
-        "   recorded, with a timestamp." & vbLf & vbLf & _
-        "That is the whole agent: it found context for you, helped you build something," & vbLf & _
-        "wrote it where it belongs, and kept a record - and nothing happened until you" & vbLf & _
-        "clicked. You were in the loop the entire time." & vbLf & vbLf & _
-        String(60, "-") & vbLf & _
-        "THE OTHER BUTTONS - not needed on day one" & vbLf & _
-        String(60, "-") & vbLf & _
-        "   Button 4 - Regenerate Index : rebuilds the listings. Runs automatically after" & vbLf & _
-        "              every write; button 4 is the manual version." & vbLf & _
-        "   Button 5 - Run Linter       : checks the context for problems (broken links," & vbLf & _
-        "              stalls, etc.). Findings appear in the " & Chr(34) & "StickShift Lint Report" & Chr(34) & " sheet." & vbLf & vbLf & _
-        String(60, "-") & vbLf & _
-        "IF YOU GET STUCK" & vbLf & _
-        String(60, "-") & vbLf & _
-        "Note exactly where you hesitated - that spot is genuinely useful; it tells us" & vbLf & _
-        "what to make smoother for the next person."
+    Dim hr As String: hr = String(60, "-")
+    readmeText = "StickShift " & ChrW(8212) & " READ ME FIRST" & vbLf
+    readmeText = readmeText & "Everything automatic AI promises " & ChrW(8212) & " except your hand's on the StickShift." & vbLf & vbLf
+    readmeText = readmeText & "A manual-activation knowledge agent. It runs entirely inside this workbook." & vbLf & vbLf
+    readmeText = readmeText & hr & vbLf
+    readmeText = readmeText & "WHAT THIS IS" & vbLf
+    readmeText = readmeText & hr & vbLf
+    readmeText = readmeText & "This connects your AI chat to a folder of markdown notes (a " & Chr(34) & "context" & Chr(34) & ")." & vbLf
+    readmeText = readmeText & "The AI asks for context, or proposes file edits. You copy what it gives you," & vbLf
+    readmeText = readmeText & "click a button here, and the workbook does the work." & vbLf & vbLf
+    readmeText = readmeText & "Nothing runs on its own. Nothing happens until you click. You stay in the loop." & vbLf & vbLf
+    readmeText = readmeText & hr & vbLf
+    readmeText = readmeText & "YOUR CONTEXT  (the bar at the top)" & vbLf
+    readmeText = readmeText & hr & vbLf
+    readmeText = readmeText & "The top of the dashboard shows your current context - the folder StickShift is" & vbLf
+    readmeText = readmeText & "pointed at right now. The " & Chr(34) & "Switch Context" & Chr(34) & " button changes it." & vbLf & vbLf
+    readmeText = readmeText & "You can keep more than one: a personal context, a shared team context, a" & vbLf
+    readmeText = readmeText & "per-project context. Switch between them anytime; StickShift remembers the last" & vbLf
+    readmeText = readmeText & "one per machine." & vbLf & vbLf
+    readmeText = readmeText & hr & vbLf
+    readmeText = readmeText & "SET UP - TWO CLICKS" & vbLf
+    readmeText = readmeText & hr & vbLf
+    readmeText = readmeText & "1. Enable macros: when the file opens, click the yellow bar at the top" & vbLf
+    readmeText = readmeText & "   (" & Chr(34) & "Enable Content" & Chr(34) & ")." & vbLf
+    readmeText = readmeText & "   (If you see a red " & Chr(34) & "macros have been blocked" & Chr(34) & " bar instead: close Excel," & vbLf
+    readmeText = readmeText & "   right-click the file -> Properties -> tick " & Chr(34) & "Unblock" & Chr(34) & " -> OK, then reopen.)" & vbLf & vbLf
+    readmeText = readmeText & "2. Set your context: click " & Chr(34) & "Switch Context" & Chr(34) & " in the top bar and pick (or make) a" & vbLf
+    readmeText = readmeText & "   folder - for example C:\StickShift. The name doesn't matter; the tool" & vbLf
+    readmeText = readmeText & "   remembers the path." & vbLf & vbLf
+    readmeText = readmeText & "3. Click button 1, " & Chr(34) & "Initialize Context" & Chr(34) & ". This seeds the starter files -" & vbLf
+    readmeText = readmeText & "   including a skill that teaches the AI how to write more skills - and builds" & vbLf
+    readmeText = readmeText & "   the listings the AI reads. That's setup done." & vbLf & vbLf
+    readmeText = readmeText & "   (Switching to a context someone already set up? Skip step 3 - just start" & vbLf
+    readmeText = readmeText & "   using it.)" & vbLf & vbLf
+    readmeText = readmeText & hr & vbLf
+    readmeText = readmeText & "THE LOOP - THIS IS THE WHOLE THING" & vbLf
+    readmeText = readmeText & hr & vbLf
+    readmeText = readmeText & "   copy from chat  ->  click a button here  ->  get the result  ->  back to chat" & vbLf & vbLf
+    readmeText = readmeText & "Two buttons do the real work:" & vbLf & vbLf
+    readmeText = readmeText & "   Button 2 - BUILD CONTEXT BUNDLE" & vbLf
+    readmeText = readmeText & "     Use when the AI replies with a <CONTEXT_REQUEST> block." & vbLf
+    readmeText = readmeText & "     Copy the whole block, click button 2, and the assembled context opens as" & vbLf
+    readmeText = readmeText & "     StickShift-context.md. Paste that back into the chat." & vbLf & vbLf
+    readmeText = readmeText & "   Button 3 - APPLY WRITE ENVELOPE" & vbLf
+    readmeText = readmeText & "     Use when the AI replies with a <VBA_WRITE> block (file edits)." & vbLf
+    readmeText = readmeText & "     Copy it, click button 3, and the files are written into your context." & vbLf
+    readmeText = readmeText & "     Every write is recorded in log.md, so you can always see what changed." & vbLf & vbLf
+    readmeText = readmeText & hr & vbLf
+    readmeText = readmeText & "TRY THIS FIRST - your first round-trips" & vbLf
+    readmeText = readmeText & hr & vbLf
+    readmeText = readmeText & "Your context comes seeded with a " & Chr(34) & "skill" & Chr(34) & " - a reusable procedure the AI can pick" & vbLf
+    readmeText = readmeText & "up and follow. This one teaches the AI how to write more skills. So your first" & vbLf
+    readmeText = readmeText & "session is: watch it find the skill, then use it to make your own." & vbLf & vbLf
+    readmeText = readmeText & "ROUND-TRIP 1 - see retrieval work:" & vbLf
+    readmeText = readmeText & "1. In your AI chat, ask: " & Chr(34) & "What skills are in my context?" & Chr(34) & vbLf
+    readmeText = readmeText & "2. The AI replies with a <CONTEXT_REQUEST> block - that's it asking to look in" & vbLf
+    readmeText = readmeText & "   the folder. Copy the whole block." & vbLf
+    readmeText = readmeText & "3. Click button 2, " & Chr(34) & "Build Context Bundle" & Chr(34) & ". StickShift-context.md opens. Paste" & vbLf
+    readmeText = readmeText & "   its contents back into the chat." & vbLf
+    readmeText = readmeText & "4. The AI now lists your skills - including " & Chr(34) & "Skill MD Authoring" & Chr(34) & "." & vbLf & vbLf
+    readmeText = readmeText & "ROUND-TRIP 2 - make something of your own:" & vbLf
+    readmeText = readmeText & "5. Ask: " & Chr(34) & "Use the skill-authoring skill to help me write a new skill for" & vbLf
+    readmeText = readmeText & "   <a task you actually do>." & Chr(34) & vbLf
+    readmeText = readmeText & "6. The AI may ask for the full procedure first (another <CONTEXT_REQUEST> - same" & vbLf
+    readmeText = readmeText & "   button 2). Then it walks you through it and hands you a <VBA_WRITE> block." & vbLf
+    readmeText = readmeText & "7. Copy that block, click button 3, " & Chr(34) & "Apply Write Envelope" & Chr(34) & "." & vbLf
+    readmeText = readmeText & "8. Open your skills folder - your new skill is there. Open log.md - the write is" & vbLf
+    readmeText = readmeText & "   recorded, with a timestamp." & vbLf & vbLf
+    readmeText = readmeText & "That is the whole agent: it found context for you, helped you build something," & vbLf
+    readmeText = readmeText & "wrote it where it belongs, and kept a record - and nothing happened until you" & vbLf
+    readmeText = readmeText & "clicked. You were in the loop the entire time." & vbLf & vbLf
+    readmeText = readmeText & hr & vbLf
+    readmeText = readmeText & "THE OTHER BUTTONS - not needed on day one" & vbLf
+    readmeText = readmeText & hr & vbLf
+    readmeText = readmeText & "   Button 4 - Regenerate Index : rebuilds the listings. Runs automatically after" & vbLf
+    readmeText = readmeText & "              every write; button 4 is the manual version." & vbLf
+    readmeText = readmeText & "   Button 5 - Run Linter       : checks the context for problems (broken links," & vbLf
+    readmeText = readmeText & "              stalls, etc.). Findings appear in the " & Chr(34) & "StickShift Lint Report" & Chr(34) & " sheet." & vbLf & vbLf
+    readmeText = readmeText & hr & vbLf
+    readmeText = readmeText & "IF YOU GET STUCK" & vbLf
+    readmeText = readmeText & hr & vbLf
+    readmeText = readmeText & "Note exactly where you hesitated - that spot is genuinely useful; it tells us" & vbLf
+    readmeText = readmeText & "what to make smoother for the next person."
 
     Dim r As Range
     Set r = ws.Range("B2")
