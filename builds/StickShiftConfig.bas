@@ -38,7 +38,7 @@ End Function
 
 
 Public Sub SetBundleRoot()
-    Dim dlg As FileDialog
+    Dim dlg As Object
     Set dlg = Application.FileDialog(msoFileDialogFolderPicker)
     dlg.Title = "Select StickShift Context Folder"
     dlg.AllowMultiSelect = False

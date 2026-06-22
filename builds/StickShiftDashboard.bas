@@ -30,7 +30,7 @@ Private Const SHEET_NAME As String = "StickShift"
 
 Sub CreateStickShiftDashboard()
     ' -- Remove the legacy "OKF Dashboard" sheet if it is still present -----------
-    Dim oldWs As Worksheet
+    Dim oldWs As Object
     On Error Resume Next
     Set oldWs = ThisWorkbook.Sheets("OKF Dashboard")
     On Error GoTo 0
@@ -41,7 +41,7 @@ Sub CreateStickShiftDashboard()
     End If
 
     ' -- Get or create the sheet --------------------------------------------------
-    Dim ws As Worksheet
+    Dim ws As Object
     On Error Resume Next
     Set ws = ThisWorkbook.Sheets(SHEET_NAME)
     On Error GoTo 0
@@ -57,7 +57,7 @@ Sub CreateStickShiftDashboard()
         ws.Name = SHEET_NAME
     Else
         ws.Cells.Clear
-        Dim shp As Shape
+        Dim shp As Object
         For Each shp In ws.Shapes
             shp.Delete
         Next shp
@@ -104,7 +104,7 @@ Sub CreateStickShiftDashboard()
     ws.Cells.Interior.Color = RGB(248, 250, 252)
 
     ' -- Title --------------------------------------------------------------------
-    Dim r As Range
+    Dim r As Object
     Set r = ws.Range("B2:C2"): r.Merge
     r.Value = "StickShift"
     r.Font.Size = 17: r.Font.Bold = True
@@ -113,10 +113,10 @@ Sub CreateStickShiftDashboard()
     r.Interior.Color = RGB(248, 250, 252)
 
     ' -- Read Me button (top-right) -----------------------------------------------
-    Dim readMeCell As Range
+    Dim readMeCell As Object
     Set readMeCell = ws.Range("D2")
     Const RM_INSET As Double = 4
-    Dim rmShape As Shape
+    Dim rmShape As Object
     Set rmShape = ws.Shapes.AddShape(msoShapeRoundedRectangle, _
                                       readMeCell.Left + RM_INSET, _
                                       readMeCell.Top + RM_INSET, _
@@ -260,7 +260,7 @@ End Sub
 
 
 Public Sub RefreshContextDisplay()
-    Dim ws As Worksheet
+    Dim ws As Object
     On Error Resume Next
     Set ws = ThisWorkbook.Sheets(SHEET_NAME)
     On Error GoTo 0
@@ -269,7 +269,7 @@ Public Sub RefreshContextDisplay()
     Dim rootVal As String
     rootVal = StickShiftConfig.BundleRootRaw()
 
-    Dim r As Range
+    Dim r As Object
     Set r = ws.Range(CONTEXT_CELL)
     If rootVal = "" Then
         r.Value = "(none set " & ChrW(8212) & " click Switch Context)"
@@ -284,7 +284,7 @@ End Sub
 Public Sub ShowStickShiftReadme()
     Const RM_SHEET As String = "Read Me"
 
-    Dim ws As Worksheet
+    Dim ws As Object
     On Error Resume Next
     Set ws = ThisWorkbook.Sheets(RM_SHEET)
     On Error GoTo 0
@@ -300,7 +300,7 @@ Public Sub ShowStickShiftReadme()
         ws.Name = RM_SHEET
     Else
         ws.Cells.Clear
-        Dim shp As Shape
+        Dim shp As Object
         For Each shp In ws.Shapes
             shp.Delete
         Next shp
@@ -399,7 +399,7 @@ Public Sub ShowStickShiftReadme()
     readmeText = readmeText & "Note exactly where you hesitated - that spot is genuinely useful; it tells us" & vbLf
     readmeText = readmeText & "what to make smoother for the next person."
 
-    Dim r As Range
+    Dim r As Object
     Set r = ws.Range("B2")
     r.Value = readmeText
     r.Font.Name = "Consolas"
@@ -412,7 +412,7 @@ Public Sub ShowStickShiftReadme()
     ws.Rows("2").RowHeight = 1200
 
     ' Back to dashboard affordance
-    Dim backCell As Range
+    Dim backCell As Object
     Set backCell = ws.Range("B1")
     backCell.Value = ChrW(8592) & " Back to dashboard"
     backCell.Font.Size = 9
@@ -425,15 +425,15 @@ Public Sub ShowStickShiftReadme()
 End Sub
 
 
-Private Sub MakeButton(ByVal ws As Worksheet, ByVal btnRow As Long, _
+Private Sub MakeButton(ByVal ws As Object, ByVal btnRow As Long, _
                         ByVal caption As String, ByVal macroName As String, _
                         ByVal btnColor As Long, ByVal descText As String)
 
     Const INSET As Double = 4
 
-    Dim cell As Range: Set cell = ws.Cells(btnRow, 2)
+    Dim cell As Object: Set cell = ws.Cells(btnRow, 2)
 
-    Dim s As Shape
+    Dim s As Object
     Set s = ws.Shapes.AddShape(msoShapeRoundedRectangle, _
                                 cell.Left + INSET, _
                                 cell.Top + INSET, _
@@ -472,7 +472,7 @@ Private Sub MakeButton(ByVal ws As Worksheet, ByVal btnRow As Long, _
         End With
     End With
 
-    Dim descRange As Range
+    Dim descRange As Object
     Set descRange = ws.Range(ws.Cells(btnRow + 1, 2), ws.Cells(btnRow + 1, 4))
     descRange.Merge
     descRange.Value = descText
