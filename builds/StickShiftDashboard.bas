@@ -47,6 +47,12 @@ Sub CreateStickShiftDashboard()
     On Error GoTo 0
 
     If ws Is Nothing Then
+        If ThisWorkbook.ProtectStructure Then
+            MsgBox "The workbook structure is protected." & vbCrLf & vbCrLf & _
+                   "Go to Review > Unprotect Workbook, then run this again.", _
+                   vbExclamation, "StickShift"
+            Exit Sub
+        End If
         Set ws = ThisWorkbook.Sheets.Add(Before:=ThisWorkbook.Sheets(1))
         ws.Name = SHEET_NAME
     Else
@@ -284,6 +290,12 @@ Public Sub ShowStickShiftReadme()
     On Error GoTo 0
 
     If ws Is Nothing Then
+        If ThisWorkbook.ProtectStructure Then
+            MsgBox "The workbook structure is protected." & vbCrLf & vbCrLf & _
+                   "Go to Review > Unprotect Workbook, then run this again.", _
+                   vbExclamation, "StickShift"
+            Exit Sub
+        End If
         Set ws = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count))
         ws.Name = RM_SHEET
     Else
