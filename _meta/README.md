@@ -15,14 +15,14 @@ One file = one build. That's the whole data model.
 
 ## Step 2 — Run the Index Generator
 
-Open `OKFIndexGenerator.bas` in Excel's VBA editor (Alt+F11 → Import File).
+Open `StickShiftIndexGenerator.bas` in Excel's VBA editor (Alt+F11 → Import File).
 
 Before first run:
 1. Set `BUNDLE_ROOT` in the constants block to your actual OneDrive path
    (e.g. `C:\Users\YourName\OneDrive\build-portfolio\`).
 2. Verify Tools → References includes **Microsoft ActiveX Data Objects 2.x**.
 3. Test against a 3-file subfolder before running on the full bundle.
-4. Run `GenerateOKFIndexes`. Confirm `index.md` appears at the bundle root
+4. Run `GenerateStickShiftIndexes`. Confirm `index.md` appears at the bundle root
    and reads as a status board with `working` items at the top, sorted oldest
    `last_touched` first.
 
@@ -60,16 +60,16 @@ envelope. The macro applies it — but only after you review it.
 
 ### Apply the change via macro
 
-4. Import `builds/OKFWriteApply.bas` into the same Excel workbook as
-   `OKFIndexGenerator.bas`. Before first run, set `BUNDLE_ROOT` in the
-   constants block — it **must** match `OKFIndexGenerator.bas`.
-5. Run `ApplyOKFWrite`. The macro reads the clipboard and applies the gate:
+4. Import `builds/StickShiftWriteApply.bas` into the same Excel workbook as
+   `StickShiftIndexGenerator.bas`. Before first run, set `BUNDLE_ROOT` in the
+   constants block — it **must** match `StickShiftIndexGenerator.bas`.
+5. Run `ApplyStickShiftWrite`. The macro reads the clipboard and applies the gate:
    - **New file** (path does not exist) → written directly.
    - **Edit to existing file** → written as `<path>.md.proposed` sidecar.
      The original is untouched.
 6. A summary message reports how many files were written and how many were
    staged as `.proposed`.
-7. The macro calls `GenerateOKFIndexes` automatically. New builds appear in
+7. The macro calls `GenerateStickShiftIndexes` automatically. New builds appear in
    the index immediately. `.proposed` sidecars are ignored by the generator
    (they do not end in `.md`).
 
@@ -79,7 +79,7 @@ envelope. The macro applies it — but only after you review it.
 9. Verify the change is exactly what was intended.
 10. Rename `<slug>.md.proposed` → `<slug>.md` to apply the edit, or delete
     the `.proposed` file to discard it.
-11. Re-run `GenerateOKFIndexes` after renaming.
+11. Re-run `GenerateStickShiftIndexes` after renaming.
 
 The rename is the merge. No edit ever lands without a human approving it.
 
@@ -87,8 +87,8 @@ The rename is the merge. No edit ever lands without a human approving it.
 
 ## Step 6 — Run the linter to check integrity
 
-Import `builds/OKFLint.bas` into the same workbook. Set `BUNDLE_ROOT` to match
-the other macros. Run `RunOKFLint`.
+Import `builds/StickShiftLint.bas` into the same workbook. Set `BUNDLE_ROOT` to match
+the other macros. Run `RunStickShiftLint`.
 
 The linter checks:
 - **Missing type / required fields** — every build needs `type`, `status`,
@@ -101,7 +101,7 @@ The linter checks:
 - **Active-to-archived links** — a non-archived build linking to an archived
   one (retarget the dependency before depending on it).
 
-Findings are written to an **OKF Lint Report** worksheet (colour-coded errors
+Findings are written to a **StickShift Lint Report** worksheet (colour-coded errors
 and warnings). Run the linter after any batch of edits, and before committing
 the portfolio to version control.
 
