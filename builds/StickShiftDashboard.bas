@@ -27,6 +27,24 @@ Public Const CONTEXT_CELL As String = "B6"
 
 Private Const SHEET_NAME As String = "StickShift"
 
+' -- Constant shims: keep this module portable under pure late binding --
+Private Const xlContinuous As Long = 1
+Private Const xlThin As Long = 2
+Private Const xlMedium As Long = -4138
+Private Const xlEdgeLeft As Long = 7
+Private Const xlEdgeTop As Long = 8
+Private Const xlEdgeBottom As Long = 9
+Private Const xlVAlignCenter As Long = -4108
+Private Const xlVAlignTop As Long = -4160
+Private Const xlCenter As Long = -4108
+Private Const xlLeft As Long = -4131
+Private Const xlUnderlineStyleSingle As Long = 2
+Private Const msoFalse As Long = 0
+Private Const msoTrue As Long = -1
+Private Const msoShapeRoundedRectangle As Long = 5
+Private Const msoAnchorMiddle As Long = 3
+Private Const msoAlignCenter As Long = 2
+
 
 Sub CreateStickShiftDashboard()
     ' -- Remove the legacy "OKF Dashboard" sheet if it is still present -----------
