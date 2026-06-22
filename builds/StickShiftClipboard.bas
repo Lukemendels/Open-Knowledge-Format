@@ -1,6 +1,6 @@
 Attribute VB_Name = "StickShiftClipboard"
 ' =====================================================================
-'  StickShift Clipboard — OKF-compliant
+'  StickShift Clipboard -- OKF-compliant
 '  Shared Win-API clipboard reader.
 '
 '  Provides GetClipboardText(), a reliable Unicode-aware clipboard

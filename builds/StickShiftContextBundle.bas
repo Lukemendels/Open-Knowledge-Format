@@ -1,6 +1,6 @@
 Attribute VB_Name = "StickShiftContextBundle"
 ' =====================================================================
-'  StickShift Context Bundle — OKF-compliant
+'  StickShift Context Bundle -- OKF-compliant
 '  (conformant OKF v0.1 bundle assembler)
 '
 '  Entry point: Sub BuildContextBundle()

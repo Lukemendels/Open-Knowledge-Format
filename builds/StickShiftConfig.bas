@@ -1,6 +1,6 @@
 Attribute VB_Name = "StickShiftConfig"
 ' =====================================================================
-'  StickShift Config — OKF-compliant
+'  StickShift Config -- OKF-compliant
 '  Single source of truth for the context root path.
 '
 '  Stores the root in the Windows registry via VBA's SaveSetting /
@@ -38,7 +38,7 @@ End Function
 
 
 Public Sub SetBundleRoot()
-    Dim dlg As FileDialog
+    Dim dlg As Object
     Set dlg = Application.FileDialog(msoFileDialogFolderPicker)
     dlg.Title = "Select StickShift Context Folder"
     dlg.AllowMultiSelect = False

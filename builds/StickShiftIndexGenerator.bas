@@ -1,6 +1,6 @@
 Attribute VB_Name = "StickShiftIndexGenerator"
 ' =====================================================================
-'  StickShift Index Generator — OKF-compliant
+'  StickShift Index Generator -- OKF-compliant
 '  (conformant OKF v0.1 producer)
 '
 '  Walks a bundle tree and (re)writes an index.md in every directory,

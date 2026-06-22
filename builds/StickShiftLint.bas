@@ -1,6 +1,6 @@
 Attribute VB_Name = "StickShiftLint"
 ' =====================================================================
-'  StickShift Lint — OKF-compliant
+'  StickShift Lint -- OKF-compliant
 '  (deterministic integrity checker, no model, no mutation)
 '
 '  Scans every concept .md file under BUNDLE_ROOT and writes a
@@ -379,7 +379,7 @@ End Sub
 Private Sub WriteReport(ByVal findings As Collection)
     Dim sheetName As String: sheetName = "StickShift Lint Report"
 
-    Dim ws As Worksheet
+    Dim ws As Object
     On Error Resume Next
     Set ws = ThisWorkbook.Sheets(sheetName)
     On Error GoTo 0

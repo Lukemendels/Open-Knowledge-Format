@@ -1,6 +1,6 @@
 Attribute VB_Name = "StickShiftBootstrap"
 ' =====================================================================
-'  StickShift Bootstrap — OKF-compliant
+'  StickShift Bootstrap -- OKF-compliant
 '  One-click context initialiser.
 '
 '  BootstrapBundle creates the standard seed concepts in an empty (or
