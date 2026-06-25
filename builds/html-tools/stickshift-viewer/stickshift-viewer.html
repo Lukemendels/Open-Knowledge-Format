@@ -1,0 +1,1308 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StickShift Viewer</title>
+<style>
+  :root {
+    --bg-color: #0f172a;
+    --card-bg: #1e293b;
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --border-color: #334155;
+    
+    --primary: #6366f1;
+    --primary-hover: #4f46e5;
+    --success: #10b981;
+    --success-hover: #059669;
+    --accent: #b8541f;
+    --accent-soft: #f0e2d8;
+    --paper: #f4f4f0;
+    
+    --sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  button {
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    color: var(--text-primary);
+    padding: 7px 12px;
+    transition: background-color 0.2s, border-color 0.2s;
+    outline: none;
+  }
+  button:hover {
+    border-color: var(--text-secondary);
+  }
+  button:active {
+    transform: scale(0.98);
+  }
+
+  .btn-primary {
+    background-color: var(--primary);
+    border-color: var(--primary);
+    font-weight: 600;
+  }
+  .btn-primary:hover {
+    background-color: var(--primary-hover);
+    border-color: var(--primary-hover);
+  }
+
+  .btn-success {
+    background-color: var(--success);
+    border-color: var(--success);
+    font-weight: 600;
+  }
+  .btn-success:hover {
+    background-color: var(--success-hover);
+    border-color: var(--success-hover);
+  }
+  .btn-success.disabled {
+    background-color: #064e3b;
+    color: #6ee7b7;
+    pointer-events: none;
+    opacity: 0.6;
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 20px;
+    background-color: var(--card-bg);
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    z-index: 5;
+  }
+
+  .brand {
+    font-weight: 800;
+    font-size: 1.2rem;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #a5b4fc 0%, #6366f1 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    white-space: nowrap;
+  }
+
+  .spacer {
+    flex: 1;
+  }
+
+  .stamp {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+  }
+
+  .actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  /* Workspace Layout */
+  .workspace {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* Left Sidebar Explorer */
+  .sidebar {
+    width: 290px;
+    border-right: 1px solid var(--border-color);
+    background-color: #0b0f19;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .sidebar-header {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 14px 20px 10px;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .tree-view {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 0;
+  }
+
+  .tree-folder-header {
+    display: flex;
+    align-items: center;
+    padding: 6px 12px;
+    cursor: pointer;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 600;
+    user-select: none;
+  }
+  .tree-folder-header:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .tree-folder-content.collapsed {
+    display: none;
+  }
+
+  .tree-file {
+    display: flex;
+    align-items: center;
+    padding: 6px 12px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 13px;
+    user-select: none;
+  }
+  .tree-file:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+  }
+  .tree-file.active {
+    background-color: rgba(99, 102, 241, 0.15);
+    color: var(--text-primary);
+    font-weight: 600;
+    border-left: 3px solid var(--primary);
+  }
+
+  .folder-arrow {
+    display: inline-block;
+    width: 12px;
+    font-size: 10px;
+    color: var(--text-secondary);
+    transition: transform 0.2s;
+  }
+
+  .file-icon {
+    font-size: 11px;
+    margin-right: 6px;
+    color: var(--text-secondary);
+  }
+
+  .dirty-dot {
+    width: 6px;
+    height: 6px;
+    background-color: var(--accent);
+    border-radius: 50%;
+    margin-left: auto;
+  }
+
+  /* Main Document Panel */
+  .main-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: #111827;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--border-color);
+    background-color: rgba(30, 41, 59, 0.5);
+    min-height: 48px;
+  }
+
+  #filePath {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .panel-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .panel-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* View Mode: formatted nicely for viewing */
+  .preview-pane {
+    flex: 1;
+    background-color: #ffffff;
+    color: #1e293b;
+    padding: 36px 40px;
+    overflow-y: auto;
+  }
+
+  .preview-pane p {
+    font-family: Calibri, Arial, sans-serif;
+    font-size: 11pt;
+    margin-bottom: 1em;
+    line-height: 1.5;
+    color: #1e293b;
+  }
+
+  .preview-pane h1 {
+    font-family: Calibri, Arial, sans-serif;
+    font-size: 18pt;
+    font-weight: bold;
+    color: #0f172a;
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 0.25em;
+  }
+
+  .preview-pane h2 {
+    font-family: Calibri, Arial, sans-serif;
+    font-size: 15pt;
+    font-weight: bold;
+    color: #0f172a;
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+  }
+
+  .preview-pane h3 {
+    font-family: Calibri, Arial, sans-serif;
+    font-size: 13pt;
+    font-weight: bold;
+    color: #0f172a;
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+  }
+
+  .preview-pane ul {
+    font-family: Calibri, Arial, sans-serif;
+    font-size: 11pt;
+    margin-bottom: 1em;
+    padding-left: 20px;
+    color: #1e293b;
+  }
+
+  .preview-pane li {
+    margin-bottom: 0.5em;
+    line-height: 1.5;
+  }
+
+  .preview-pane strong {
+    font-weight: bold;
+    color: #0f172a;
+  }
+
+  .preview-pane em {
+    font-style: italic;
+  }
+
+  /* Edit Mode */
+  .editor-textarea {
+    flex: 1;
+    width: 100%;
+    background-color: #0d1117;
+    color: #c9d1d9;
+    border: none;
+    padding: 24px;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.6;
+    resize: none;
+    outline: none;
+  }
+
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: var(--text-secondary);
+    padding: 40px;
+    text-align: center;
+  }
+
+  .empty-state p {
+    font-size: 14px;
+    max-width: 320px;
+  }
+
+  /* Modals / Scrims */
+  .scrim {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.7);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 10;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .scrim.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .modal {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    max-width: 580px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 24px;
+    gap: 16px;
+  }
+
+  .modal h2 {
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  .modal p {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  #dropZone {
+    border: 2px dashed var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    background: #0f172a;
+    transition: border-color 0.2s, background-color 0.2s;
+  }
+  #dropZone:hover {
+    border-color: var(--primary);
+  }
+
+  textarea.modal-textarea {
+    width: 100%;
+    height: 280px;
+    background-color: #0b0f19;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    padding: 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+    resize: none;
+    outline: none;
+  }
+
+  .err {
+    color: #ef4444;
+    font-size: 12.5px;
+  }
+
+  .modal-foot {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+
+  .modal-foot .left-btn {
+    margin-right: auto;
+  }
+
+  .envelope {
+    font-family: var(--mono);
+    font-size: 11px;
+    white-space: pre;
+    overflow: auto;
+    background: #090d16;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px;
+    max-height: 40vh;
+    color: #38bdf8;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--primary);
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s, transform 0.2s;
+    z-index: 30;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translate(-50%, -5px);
+  }
+
+  /* Onboarding / Setup panel */
+  .ss-panel {
+    display: none;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background-color: var(--card-bg);
+    padding: 16px;
+    margin: 16px 20px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+    flex-direction: column;
+    gap: 10px;
+  }
+  .ss-panel.open {
+    display: flex;
+  }
+
+  .ss-panel-title {
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .ss-branch {
+    display: none;
+    border-top: 1px solid var(--border-color);
+    padding-top: 10px;
+    margin-top: 4px;
+  }
+  .ss-branch.show {
+    display: block;
+  }
+
+  .ss-branch ol {
+    padding-left: 16px;
+    margin-bottom: 8px;
+  }
+
+  .ss-branch li {
+    font-size: 12.5px;
+    color: #cbd5e1;
+    margin-bottom: 4px;
+  }
+
+  .ss-btn-group {
+    display: flex;
+    gap: 8px;
+  }
+
+  /* Footer */
+  footer {
+    padding: 8px 20px;
+    border-top: 1px solid var(--border-color);
+    background-color: var(--card-bg);
+    font-size: 12px;
+    color: var(--text-secondary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 5;
+  }
+
+  .ss-foot {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    padding: 0;
+    font-size: 12px;
+  }
+  .ss-foot:hover {
+    color: var(--text-primary);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">* StickShift Viewer</div>
+  <div class="spacer"></div>
+  <span class="stamp" id="stamp">No bundle loaded</span>
+  <div class="actions">
+    <button id="loadBtn" class="btn-primary">Load Bundle</button>
+    <button id="saveBtn" class="btn-success disabled">Save Changes (VBA Envelope)</button>
+  </div>
+</header>
+
+<div class="workspace">
+  <!-- Left Explorer Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header">Concept Explorer</div>
+    <div class="tree-view" id="treeView">
+      <div class="empty-state" style="padding: 20px;">
+        <p style="font-size: 12px;">No files loaded. Use "Load Bundle" to parse your concept state.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main view/editor panel -->
+  <div class="main-panel">
+    <div class="panel-header" style="display: none;" id="panelHeader">
+      <span id="filePath"></span>
+      <div class="panel-actions">
+        <button id="toggleModeBtn">Edit Mode</button>
+        <button id="applyChangeBtn" class="btn-primary">Save File</button>
+      </div>
+    </div>
+
+    <div class="panel-body" id="panelBody">
+      <div class="empty-state">
+        <svg style="width: 48px; height: 48px; color: var(--text-secondary);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+        <p>Select a concept file from the sidebar, or drop a bundle file anywhere on the window to load your workspace.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Onboarding Panel (collapsible) -->
+<div class="ss-panel" id="ssPanel">
+  <div class="ss-panel-title">
+    <span>* Setup with StickShift</span>
+  </div>
+  <p style="font-size: 13px; color: #cbd5e1;">
+    StickShift is an Excel cockpit that gives your assistant a memory and launches local tools. This viewer works standalone or connected.
+  </p>
+  <p style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">
+    Are you using StickShift?
+  </p>
+  <div class="ss-btn-group">
+    <button class="btn-sec" id="ssYes">Yes - set it up</button>
+    <button class="btn-sec" id="ssNo">No</button>
+  </div>
+  <div class="ss-branch" id="ssBranchYes">
+    <ol>
+      <li>In StickShift, click <strong>Install HTML Tool</strong> and select this file to register it.</li>
+      <li>Or copy the skill and paste into <strong>Apply Write Envelope</strong>:
+        <button id="ssCopySkill" style="margin-top: 6px; display: block;">Copy skill</button>
+      </li>
+    </ol>
+  </div>
+  <div class="ss-branch" id="ssBranchNo">
+    <p style="font-size: 12.5px; color: #cbd5e1;">
+      Use this tool standalone by dropping your <code>StickShift-context.md</code> bundle file anywhere on this window to browse and edit.
+    </p>
+  </div>
+</div>
+
+<footer>
+  <span>&copy; 2026 StickShift Cockpit Integration</span>
+  <button class="ss-foot" id="ssFootBtn"><span>* Part of StickShift -></span></button>
+</footer>
+
+<!-- Load Modal -->
+<div class="scrim" id="loadScrim">
+  <div class="modal">
+    <h2>Load Context Bundle</h2>
+    <p>Paste the markdown text bundle, or drag &amp; drop your bundle file here. The tool parses it into the folder explorer tree structure.</p>
+    
+    <div id="dropZone">
+      <span style="color: var(--text-secondary); font-size: 13px;">Drag &amp; drop your <code>.md</code> bundle file here, or <strong>click to browse</strong></span>
+    </div>
+    <input type="file" id="fileInput" accept=".md,.txt" style="display: none;">
+
+    <textarea class="modal-textarea" id="loadText" placeholder="<!-- OKF-CONTEXT-BUNDLE... -->&#10;<!-- OKF:BEGIN concept=... -->&#10;---&#10;..."></textarea>
+    <div class="err" id="loadErr"></div>
+    <div class="modal-foot">
+      <button id="loadCancel">Cancel</button>
+      <button id="loadDo" class="btn-primary">Load Bundle</button>
+    </div>
+  </div>
+</div>
+
+<!-- Export Modal -->
+<div class="scrim" id="expScrim">
+  <div class="modal">
+    <h2>Save Changes (VBA Envelope)</h2>
+    <p>Copy this envelope and paste it into StickShift's **Apply Write Envelope** input to write changes back to your local files.</p>
+    <div class="envelope" id="expBox"></div>
+    <div class="modal-foot">
+      <button id="expClose">Close</button>
+      <button id="expCopy" class="btn-primary">Copy to clipboard</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Identity Declaration -->
+<script>
+  window.STICKSHIFT_TOOL = {
+    id: "stickshift-viewer",
+    file: "stickshift-viewer.html",
+    skillSlug: "stickshift-viewer",
+    title: "StickShift Viewer",
+    version: "0.1",
+    skill: "stickshift-viewer.skill.md",
+    io: "client-only"
+  };
+</script>
+
+<!-- Embedded Companion Skill -->
+<script type="text/markdown" id="stickshift-skill" data-skill-slug="stickshift-viewer">
+---
+type: Skill
+okf_version: "0.1"
+title: StickShift Viewer
+description: Recall, draft, and update project state stored in OKF as a list of concept markdown files. Show it visually by opening stickshift-viewer.html; the operator loads the board/context bundle and the tool renders a folder explorer tree and markdown viewer. Update two ways - a surgical direct VBA_WRITE for one change, or hand the tool a packet for bulk drafting and visual arrangement. The tool exports only what changed. Indexes are never hand-written.
+tags:
+  - markdown-editor
+  - html-tool
+  - concept-viewer
+---
+
+# Skill: StickShift Viewer
+
+State lives under folders/files inside the bundle root (index.md, maps, lists, skills, projects, etc.).
+
+Recall: emit one <CONTEXT_REQUEST> for the folders/files, nothing else.
+Show: emit one <HTML_OPEN> block:
+<HTML_OPEN>
+tool: stickshift-viewer.html
+</HTML_OPEN>
+
+Update - two paths:
+  Path A (surgical): one change -> emit one <VBA_WRITE> rewriting just the shard.
+  Path B (visual/bulk): draft concepts, let the operator load and save in the tool.
+Use A for one or two edits; B when the change is large or spatial.
+
+Loading bundles: The tool accepts both standard "### FILE:"-delimited packets and
+assembled OKF context bundles (starting with <!-- OKF-CONTEXT-BUNDLE). The operator
+can paste the text or drag & drop the bundle file directly onto the tool page.
+
+Saving changes: The tool tracks changes made to any files and exports a standard
+<VBA_WRITE> envelope containing only the dirty/modified files.
+</script>
+
+<!-- Controller Logic -->
+<script>
+  "use strict";
+
+  // ---- State ----
+  var files = [];          // [{path: string, text: string, originalText: string, isNew: boolean}]
+  var activeFile = null;   // reference to active file object
+  var activeMode = "view"; // "view" | "edit"
+
+  // ---- Parser ----
+  function loadFromText(text) {
+    var lines = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+    var parsed = [];
+    var currentPath = "";
+    var currentLines = [];
+
+    function flushBlock() {
+      if (currentPath) {
+        var content = currentLines.join("\n").trim();
+        if (content) {
+          parsed.push({ path: currentPath, text: content, originalText: content, isNew: false });
+        }
+      }
+    }
+
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i];
+      var trimLine = line.trim();
+
+      if (trimLine.indexOf("### FILE:") === 0) {
+        flushBlock();
+        currentPath = trimLine.slice(9).trim();
+        currentLines = [];
+        continue;
+      }
+
+      var okfMatch = /<!--\s*OKF:BEGIN\s+concept=["']?([^\s"'>]+)/i.exec(trimLine);
+      if (okfMatch) {
+        flushBlock();
+        currentPath = okfMatch[1].trim();
+        currentLines = [];
+        continue;
+      }
+
+      if (trimLine.indexOf("### END FILE") === 0 || trimLine.indexOf("<!-- OKF:END") === 0) {
+        flushBlock();
+        currentPath = "";
+        currentLines = [];
+        continue;
+      }
+
+      if (!currentPath) {
+        continue;
+      }
+
+      currentLines.push(line);
+    }
+    flushBlock();
+
+    if (!parsed.length && text.trim()) {
+      parsed.push({ path: "unnamed-concept.md", text: text, originalText: text, isNew: true });
+    }
+
+    if (parsed.length > 0) {
+      files = parsed;
+      activeFile = null;
+      renderSidebar();
+      renderActiveFile();
+      updateSaveButtonState();
+      stampNow();
+      return true;
+    }
+    return false;
+  }
+
+  // ---- Change Tracking ----
+  function isFileDirty(f) {
+    return f.isNew || f.text !== f.originalText;
+  }
+
+  function getDirtyFiles() {
+    return files.filter(isFileDirty);
+  }
+
+  function updateSaveButtonState() {
+    var saveBtn = document.getElementById("saveBtn");
+    var dirty = getDirtyFiles();
+    if (dirty.length > 0) {
+      saveBtn.classList.remove("disabled");
+      saveBtn.textContent = "Save Changes (VBA Envelope - " + dirty.length + ")";
+    } else {
+      saveBtn.classList.add("disabled");
+      saveBtn.textContent = "Save Changes (VBA Envelope)";
+    }
+  }
+
+  // ---- Frontmatter Parsing ----
+  function parseFrontmatter(text) {
+    var lines = text.replace(/\r\n/g, "\n").split("\n");
+    var keys = [], map = {}, body = text, i = 0;
+    if (lines[0] && lines[0].trim() === "---") {
+      i = 1;
+      while (i < lines.length && lines[i].trim() !== "---") {
+        var line = lines[i];
+        var idx = line.indexOf(":");
+        if (idx > 0) {
+          var k = line.slice(0, idx).trim();
+          var v = line.slice(idx + 1).trim();
+          keys.push(k); map[k] = v;
+        }
+        i++;
+      }
+      body = lines.slice(i + 1).join("\n").replace(/^\n+/, "").replace(/\s+$/, "");
+    }
+    return { keys: keys, map: map, body: body };
+  }
+
+  // ---- Markdown Renderer ----
+  function renderMarkdown(md) {
+    if (!md) return '<p style="color: #94a3b8; font-style: italic;">No content</p>';
+    var escaped = md
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    
+    var lines = escaped.split("\n");
+    var output = "";
+    var inList = false;
+    var currentList = [];
+    
+    function flushList() {
+      if (inList && currentList.length > 0) {
+        output += '<ul style="margin-top: 0; margin-bottom: 1em; padding-left: 20px; font-family: Calibri, Arial, sans-serif; font-size: 11pt; color: #1e293b;">';
+        currentList.forEach(function(item) {
+          output += '<li style="margin-bottom: 0.5em; line-height: 1.5;">' + processInline(item) + '</li>';
+        });
+        output += '</ul>';
+        currentList = [];
+        inList = false;
+      }
+    }
+    
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i];
+      var trimmed = line.trim();
+      
+      if (trimmed.startsWith("### ")) {
+        flushList();
+        output += '<h3 style="font-family: Calibri, Arial, sans-serif; font-size: 13pt; font-weight: bold; color: #0f172a; margin-top: 1.5em; margin-bottom: 0.5em;">' + processInline(trimmed.substring(4).trim()) + '</h3>';
+        continue;
+      }
+      if (trimmed.startsWith("## ")) {
+        flushList();
+        output += '<h2 style="font-family: Calibri, Arial, sans-serif; font-size: 15pt; font-weight: bold; color: #0f172a; margin-top: 1.5em; margin-bottom: 0.5em;">' + processInline(trimmed.substring(3).trim()) + '</h2>';
+        continue;
+      }
+      if (trimmed.startsWith("# ")) {
+        flushList();
+        output += '<h1 style="font-family: Calibri, Arial, sans-serif; font-size: 18pt; font-weight: bold; color: #0f172a; margin-top: 1.5em; margin-bottom: 0.5em;">' + processInline(trimmed.substring(2).trim()) + '</h1>';
+        continue;
+      }
+      
+      var isBullet = trimmed.startsWith("- ") || trimmed.startsWith("* ");
+      if (isBullet) {
+        inList = true;
+        currentList.push(trimmed.substring(2).trim());
+      } else {
+        if (trimmed === "") {
+          flushList();
+        } else {
+          flushList();
+          var para = trimmed;
+          while (i + 1 < lines.length && lines[i + 1].trim() !== "" && !(lines[i + 1].trim().startsWith("- ") || lines[i + 1].trim().startsWith("* ") || lines[i + 1].trim().startsWith("#"))) {
+            i++;
+            para += "\n" + lines[i].trim();
+          }
+          var formattedPara = processInline(para).replace(/\n/g, "<br>");
+          output += '<p style="margin-top: 0; margin-bottom: 1em; font-family: Calibri, Arial, sans-serif; font-size: 11pt; line-height: 1.5; color: #1e293b;">' + formattedPara + '</p>';
+        }
+      }
+    }
+    flushList();
+    return output;
+  }
+
+  function processInline(text) {
+    var processed = text
+      .replace(/\[x\]/gi, '<input type="checkbox" checked disabled style="margin-right: 6px;">')
+      .replace(/\[ \]/g, '<input type="checkbox" disabled style="margin-right: 6px;">');
+    
+    processed = processed.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+    processed = processed.replace(/\*([^*]+)\*/g, "<em>$1</em>");
+    return processed;
+  }
+
+  // ---- Workspace Tree Renderer ----
+  function buildTree(filesList) {
+    var root = { name: "Root", children: {}, files: [] };
+    filesList.forEach(function(f) {
+      var parts = f.path.split("/");
+      var current = root;
+      for (var i = 0; i < parts.length - 1; i++) {
+        var part = parts[i];
+        if (!current.children[part]) {
+          current.children[part] = { name: part, children: {}, files: [] };
+        }
+        current = current.children[part];
+      }
+      var filename = parts[parts.length - 1];
+      current.files.push({ name: filename, file: f });
+    });
+    return root;
+  }
+
+  var folderStates = {}; // remember toggle states across redraws
+
+  function renderNode(node, depth, pathPrefix) {
+    var html = "";
+    var padding = depth * 12 + 20;
+    
+    var subfolderNames = Object.keys(node.children).sort();
+    subfolderNames.forEach(function(name) {
+      var child = node.children[name];
+      var folderPath = pathPrefix + name + "/";
+      var isCollapsed = folderStates[folderPath] === undefined ? true : folderStates[folderPath];
+      
+      var arrowSymbol = isCollapsed ? "&#9656;" : "&#9662;";
+      var contentClass = isCollapsed ? "tree-folder-content collapsed" : "tree-folder-content";
+      
+      html += '<div class="tree-folder-header" style="padding-left: ' + padding + 'px;" onclick="toggleFolder(\'' + escJs(folderPath) + '\')">' +
+              '<span class="folder-arrow" id="arrow-' + escAttr(folderPath) + '">' + arrowSymbol + '</span>&nbsp;' +
+              '<span class="folder-name">' + esc(name) + '</span>' +
+              '</div>' +
+              '<div class="' + contentClass + '" id="folder-' + escAttr(folderPath) + '">';
+      html += renderNode(child, depth + 1, folderPath);
+      html += '</div>';
+    });
+    
+    var sortedFiles = node.files.sort(function(a, b) { return a.name.localeCompare(b.name); });
+    sortedFiles.forEach(function(f) {
+      var isDirty = isFileDirty(f.file);
+      var dirtyDot = isDirty ? '<span class="dirty-dot"></span>' : '';
+      var activeClass = (activeFile && activeFile.path === f.file.path) ? " active" : "";
+      
+      html += '<div class="tree-file' + activeClass + '" style="padding-left: ' + (padding + 12) + 'px;" onclick="selectFile(\'' + escJs(f.file.path) + '\')">' +
+              '<span class="file-icon">&#9634;</span>' +
+              '<span class="file-name">' + esc(f.name) + '</span>' +
+              dirtyDot +
+              '</div>';
+    });
+    
+    return html;
+  }
+
+  function renderSidebar() {
+    var treeView = document.getElementById("treeView");
+    if (files.length === 0) {
+      treeView.innerHTML = '<div class="empty-state" style="padding: 20px;"><p style="font-size: 12px;">No files loaded.</p></div>';
+      return;
+    }
+    var tree = buildTree(files);
+    treeView.innerHTML = renderNode(tree, 0, "");
+  }
+
+  function toggleFolder(folderPath) {
+    var isCollapsed = folderStates[folderPath] === undefined ? true : folderStates[folderPath];
+    folderStates[folderPath] = !isCollapsed;
+    
+    var el = document.getElementById("folder-" + folderPath);
+    var arrow = document.getElementById("arrow-" + folderPath);
+    
+    if (isCollapsed) {
+      el.classList.remove("collapsed");
+      arrow.innerHTML = "&#9662;";
+    } else {
+      el.classList.add("collapsed");
+      arrow.innerHTML = "&#9656;";
+    }
+  }
+
+  function selectFile(filePath) {
+    var fileObj = files.filter(function(f) { return f.path === filePath; })[0];
+    if (fileObj) {
+      activeFile = fileObj;
+      renderSidebar();
+      renderActiveFile();
+    }
+  }
+
+  function renderActiveFile() {
+    var panelHeader = document.getElementById("panelHeader");
+    var panelBody = document.getElementById("panelBody");
+    var toggleModeBtn = document.getElementById("toggleModeBtn");
+    
+    if (!activeFile) {
+      panelHeader.style.display = "none";
+      panelBody.innerHTML = '<div class="empty-state"><svg style="width: 48px; height: 48px; color: var(--text-secondary);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg><p>Select a concept file from the sidebar to view.</p></div>';
+      return;
+    }
+    
+    panelHeader.style.display = "";
+    document.getElementById("filePath").textContent = activeFile.path;
+    
+    if (activeMode === "view") {
+      toggleModeBtn.textContent = "Edit Mode";
+      
+      // Parse frontmatter vs body to format nicely
+      var parsed = parseFrontmatter(activeFile.text);
+      var headerHtml = "";
+      if (parsed.keys.length > 0) {
+        headerHtml += '<div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 14px; margin-bottom: 20px; font-family: Calibri, Arial, sans-serif; font-size: 10pt;">';
+        headerHtml += '<strong style="color: #475569; display: block; margin-bottom: 6px; text-transform: uppercase; font-size: 8.5pt; letter-spacing: 0.05em;">Concept Frontmatter</strong>';
+        parsed.keys.forEach(function(k) {
+          headerHtml += '<div style="margin: 3px 0;"><span style="color: #64748b; font-weight: 600;">' + esc(k) + ':</span> <span style="color: #334155;">' + esc(parsed.map[k]) + '</span></div>';
+        });
+        headerHtml += '</div>';
+      }
+      
+      panelBody.innerHTML = '<div class="preview-pane">' + headerHtml + renderMarkdown(parsed.body) + '</div>';
+    } else {
+      toggleModeBtn.textContent = "View Mode";
+      panelBody.innerHTML = '<textarea class="editor-textarea" id="editorTextarea"></textarea>';
+      document.getElementById("editorTextarea").value = activeFile.text;
+    }
+  }
+
+  function applyActiveFileChanges() {
+    if (!activeFile) return;
+    if (activeMode === "edit") {
+      var txt = document.getElementById("editorTextarea").value;
+      activeFile.text = txt;
+      activeMode = "view";
+      renderActiveFile();
+      renderSidebar();
+      updateSaveButtonState();
+      toast("Changes saved locally in memory");
+    }
+  }
+
+  // ---- Export to VBA Envelope ----
+  function doExport() {
+    var dirty = getDirtyFiles();
+    if (dirty.length === 0) return;
+    
+    var env = "<VBA_WRITE>\n";
+    dirty.forEach(function(f) {
+      env += "### FILE: " + f.path + "\n" + f.text.replace(/\r\n/g, "\n").replace(/\r/g, "\n") + "\n### END FILE\n";
+    });
+    env += "</VBA_WRITE>";
+    
+    document.getElementById("expBox").textContent = env;
+    openScrim("expScrim");
+  }
+
+  // ---- HTML Escapes ----
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+  function escAttr(s) {
+    return esc(s).replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+  function escJs(s) {
+    return String(s == null ? "" : s).replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, '\\"');
+  }
+
+  // ---- Clipboard with file:// fallback ----
+  function copyText(text, cb) {
+    if (window.isSecureContext && navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function() { cb(true); }, function() { cb(legacyCopy(text)); });
+    } else {
+      cb(legacyCopy(text));
+    }
+  }
+  function legacyCopy(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    var ok = false;
+    try {
+      ok = document.execCommand("copy");
+    } catch(e) {}
+    document.body.removeChild(ta);
+    return ok;
+  }
+
+  // ---- UI Utilities ----
+  function stampNow() {
+    var d = new Date();
+    var hh = String(d.getHours()).padStart(2, "0");
+    var mm = String(d.getMinutes()).padStart(2, "0");
+    document.getElementById("stamp").textContent = "Loaded " + hh + ":" + mm + " \u00B7 " + files.length + " concepts";
+  }
+
+  function openScrim(id) {
+    document.getElementById(id).classList.add("open");
+  }
+  function closeScrim(id) {
+    document.getElementById(id).classList.remove("open");
+  }
+
+  var toastT;
+  function toast(msg) {
+    var t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toastT);
+    toastT = setTimeout(function() {
+      t.classList.remove("show");
+    }, 2800);
+  }
+
+  // ---- Wire Up Events ----
+  document.getElementById("loadBtn").onclick = function() {
+    document.getElementById("loadErr").textContent = "";
+    openScrim("loadScrim");
+  };
+  document.getElementById("loadCancel").onclick = function() {
+    closeScrim("loadScrim");
+  };
+  document.getElementById("loadDo").onclick = function() {
+    var txt = document.getElementById("loadText").value;
+    if (loadFromText(txt)) {
+      closeScrim("loadScrim");
+      toast("Bundle loaded successfully");
+    } else {
+      document.getElementById("loadErr").textContent = "Failed to parse. Paste a valid OKF context bundle or concepts.";
+    }
+  };
+
+  document.getElementById("toggleModeBtn").onclick = function() {
+    if (!activeFile) return;
+    if (activeMode === "view") {
+      activeMode = "edit";
+    } else {
+      // automatically save before switching back to view
+      var txt = document.getElementById("editorTextarea").value;
+      activeFile.text = txt;
+      activeMode = "view";
+      updateSaveButtonState();
+      renderSidebar();
+    }
+    renderActiveFile();
+  };
+
+  document.getElementById("applyChangeBtn").onclick = applyActiveFileChanges;
+  document.getElementById("saveBtn").onclick = doExport;
+  document.getElementById("expClose").onclick = function() {
+    closeScrim("expScrim");
+  };
+  document.getElementById("expCopy").onclick = function() {
+    var env = document.getElementById("expBox").textContent;
+    copyText(env, function(ok) {
+      if (ok) {
+        // clear dirty status after copying
+        var dirty = getDirtyFiles();
+        dirty.forEach(function(f) {
+          f.originalText = f.text;
+          f.isNew = false;
+        });
+        toast("Envelope copied to clipboard!");
+        closeScrim("expScrim");
+        renderSidebar();
+        renderActiveFile();
+        updateSaveButtonState();
+      } else {
+        toast("Copy failed - select text manually and press Ctrl+C");
+      }
+    });
+  };
+
+  // Drag and Drop File Handlers
+  var dropZone = document.getElementById("dropZone");
+  var fileInput = document.getElementById("fileInput");
+
+  dropZone.onclick = function() { fileInput.click(); };
+  fileInput.onchange = function(e) {
+    var file = e.target.files[0];
+    if (file) handleFileLoad(file);
+  };
+
+  dropZone.addEventListener("dragover", function(e) {
+    e.preventDefault();
+    dropZone.style.borderColor = "var(--primary)";
+    dropZone.style.backgroundColor = "rgba(99, 102, 241, 0.1)";
+  });
+  dropZone.addEventListener("dragleave", function() {
+    dropZone.style.borderColor = "var(--border-color)";
+    dropZone.style.backgroundColor = "#0f172a";
+  });
+  dropZone.addEventListener("drop", function(e) {
+    e.preventDefault();
+    dropZone.style.borderColor = "var(--border-color)";
+    dropZone.style.backgroundColor = "#0f172a";
+    var file = e.dataTransfer.files[0];
+    if (file) handleFileLoad(file);
+  });
+
+  function handleFileLoad(file) {
+    var reader = new FileReader();
+    reader.onload = function(evt) {
+      var txt = evt.target.result;
+      document.getElementById("loadText").value = txt;
+      if (loadFromText(txt)) {
+        closeScrim("loadScrim");
+        toast("Bundle loaded successfully");
+      } else {
+        document.getElementById("loadErr").textContent = "Failed to parse file.";
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  // Global window drop listener
+  window.addEventListener("dragover", function(e) {
+    e.preventDefault();
+  });
+  window.addEventListener("drop", function(e) {
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      e.preventDefault();
+      var file = e.dataTransfer.files[0];
+      if (file) {
+        var reader = new FileReader();
+        reader.onload = function(evt) {
+          var txt = evt.target.result;
+          if (loadFromText(txt)) {
+            toast("Context bundle loaded successfully!");
+          } else {
+            toast("Failed to parse dropped context bundle.");
+          }
+        };
+        reader.readAsText(file);
+      }
+    }
+  });
+
+  // Onboarding Panel Wiring
+  document.getElementById("ssFootBtn").onclick = function() {
+    var p = document.getElementById("ssPanel");
+    p.classList.toggle("open");
+    var btn = document.getElementById("ssFootBtn");
+    if (p.classList.contains("open")) {
+      btn.innerHTML = "<span>* Part of StickShift &#9662;</span>";
+      // auto scroll to panel
+      p.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      btn.innerHTML = "<span>* Part of StickShift -&gt;</span>";
+    }
+  };
+  document.getElementById("ssYes").onclick = function() {
+    document.getElementById("ssBranchYes").classList.add("show");
+    document.getElementById("ssBranchNo").classList.remove("show");
+  };
+  document.getElementById("ssNo").onclick = function() {
+    document.getElementById("ssBranchNo").classList.add("show");
+    document.getElementById("ssBranchYes").classList.remove("show");
+  };
+  document.getElementById("ssCopySkill").onclick = function() {
+    var sk = document.getElementById("stickshift-skill").textContent.trim();
+    copyText(sk, function(ok) {
+      toast(ok ? "Skill copied to clipboard!" : "Copy failed - select skill manually.");
+    });
+  };
+
+  // Close modals clicking on scrim backdrop
+  document.querySelectorAll(".scrim").forEach(function(s) {
+    s.addEventListener("mousedown", function(e) {
+      if (e.target === s) s.classList.remove("open");
+    });
+  });
+
+  // Auto-attempt relative load on init (CORS-dependent fallback)
+  (function initLoad() {
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", "../-dist/StickShift-context.md", true);
+    xhr.onload = function() {
+      if (xhr.status === 200 && xhr.responseText) {
+        if (loadFromText(xhr.responseText)) {
+          toast("Context bundle loaded from dist folder!");
+        }
+      }
+    };
+    xhr.send();
+  })();
+</script>
+</body>
+</html>
