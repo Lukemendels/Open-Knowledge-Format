@@ -36,6 +36,18 @@ Private Const OUT_FILENAME   As String = "StickShift-context.md"
 
 Private fso As Object
 
+#If VBA7 Then
+    Private Declare PtrSafe Function ShellExecuteA Lib "shell32" ( _
+        ByVal hwnd As LongPtr, ByVal lpOperation As String, ByVal lpFile As String, _
+        ByVal lpParameters As String, ByVal lpDirectory As String, _
+        ByVal nShowCmd As Long) As LongPtr
+#Else
+    Private Declare Function ShellExecuteA Lib "shell32" ( _
+        ByVal hwnd As Long, ByVal lpOperation As String, ByVal lpFile As String, _
+        ByVal lpParameters As String, ByVal lpDirectory As String, _
+        ByVal nShowCmd As Long) As Long
+#End If
+
 
 ' -- Entry point ------------------------------------------------------------------
 
@@ -131,19 +143,8 @@ Sub BuildContextBundle()
 
     ' 5. Build the OKF-CONTEXT-BUNDLE header.
     Dim totalConcepts As Long: totalConcepts = foundCount + mapCount + selCount
-    Dim approxTokens  As Long: approxTokens = CLng(Len(assembled)) \ 4
-    Dim ts As String
-    ts = Format(Now(), "yyyy-mm-dd") & "T" & Format(Now(), "hh:mm:ss") & "Z"
-
     Dim header As String
-    header = "<!-- OKF-CONTEXT-BUNDLE" & vbLf & _
-             "mode: " & mode & vbLf & _
-             "okf_version: " & OKF_VERSION & vbLf & _
-             "assembled: " & ts & vbLf & _
-             "concepts: " & totalConcepts & " (" & foundCount & " foundation, " & _
-                 mapCount & " map, " & selCount & " selected)" & vbLf & _
-             "approx_tokens: " & approxTokens & vbLf & _
-             "-->" & vbLf & vbLf
+    header = BundleHeader(mode, foundCount, mapCount, selCount, assembled)
 
     Dim fullOutput As String: fullOutput = header & assembled
 
@@ -677,4 +678,124 @@ Private Sub WriteUtf8(ByVal path As String, ByVal content As String)
     st.WriteText content
     st.SaveToFile path, 2
     st.Close
+End Sub
+
+Private Function BundleHeader(ByVal mode As String, ByVal foundCount As Long, _
+                              ByVal mapCount As Long, ByVal selCount As Long, _
+                              ByVal assembled As String) As String
+    Dim totalConcepts As Long: totalConcepts = foundCount + mapCount + selCount
+    Dim approxTokens  As Long: approxTokens = CLng(Len(assembled)) \ 4
+    Dim ts As String
+    ts = Format(Now(), "yyyy-mm-dd") & "T" & Format(Now(), "hh:mm:ss") & "Z"
+    BundleHeader = "<!-- OKF-CONTEXT-BUNDLE" & vbLf & _
+        "mode: " & mode & vbLf & _
+        "okf_version: " & OKF_VERSION & vbLf & _
+        "assembled: " & ts & vbLf & _
+        "concepts: " & totalConcepts & " (" & foundCount & " foundation, " & _
+            mapCount & " map, " & selCount & " selected)" & vbLf & _
+        "approx_tokens: " & approxTokens & vbLf & _
+        "-->" & vbLf & vbLf
+End Function
+
+Private Sub OpenInDefaultBrowser(ByVal filePath As String)
+    ' SW_SHOWNORMAL = 1. ANSI ShellExecute is fine for ASCII install paths.
+    ShellExecuteA 0, "open", filePath, vbNullString, vbNullString, 1
+End Sub
+
+' Reads an <HTML_OPEN> block from the clipboard, launches the named local tool from the
+' -html sibling, and (if include: seeds are given) assembles their bundle into -dist.
+Public Sub OpenHtmlTool()
+    Dim root As String
+    root = StickShiftConfig.BundleRoot()
+    If root = "" Then
+        MsgBox "Bundle root not set - click Switch Context.", vbExclamation, "StickShift"
+        Exit Sub
+    End If
+
+    Set fso = CreateObject("Scripting.FileSystemObject")
+
+    Dim clip As String
+    On Error Resume Next
+    clip = ReadClipboard()
+    On Error GoTo 0
+    clip = Replace(Replace(clip, vbCrLf, vbLf), vbCr, vbLf)
+
+    Dim startPos As Long: startPos = InStr(clip, "<HTML_OPEN>")
+    Dim endPos   As Long: endPos = InStr(clip, "</HTML_OPEN>")
+    If startPos = 0 Or endPos <= startPos Then
+        MsgBox "No <HTML_OPEN> block on the clipboard." & vbLf & _
+               "Copy the block the assistant gave you, then try again.", _
+               vbExclamation, "StickShift"
+        Exit Sub
+    End If
+
+    Dim body As String
+    body = Mid(clip, startPos + Len("<HTML_OPEN>"), endPos - (startPos + Len("<HTML_OPEN>")))
+
+    Dim toolFile As String: toolFile = ""
+    Dim depth As Long: depth = 0
+    Dim seeds(0 To 199) As String
+    Dim seedCount As Long: seedCount = 0
+
+    Dim lines() As String: lines = Split(body, vbLf)
+    Dim inInclude As Boolean: inInclude = False
+    Dim i As Long
+    For i = 0 To UBound(lines)
+        Dim ln As String: ln = Trim(lines(i))
+        If Left(ln, 6) = "tool: " Then
+            toolFile = Trim(Mid(ln, 7)): inInclude = False
+        ElseIf Left(ln, 7) = "depth: " Then
+            On Error Resume Next
+            depth = CLng(Trim(Mid(ln, 8)))
+            On Error GoTo 0
+            inInclude = False
+        ElseIf ln = "include:" Then
+            inInclude = True
+        ElseIf inInclude And Left(ln, 2) = "- " Then
+            If seedCount <= UBound(seeds) Then
+                seeds(seedCount) = Trim(Mid(ln, 3)): seedCount = seedCount + 1
+            End If
+        ElseIf ln <> "" And Left(ln, 1) <> "-" Then
+            inInclude = False
+        End If
+    Next i
+
+    If toolFile = "" Then
+        MsgBox "<HTML_OPEN> block has no `tool:` line.", vbExclamation, "StickShift"
+        Exit Sub
+    End If
+
+    ' Resolve + launch the tool from the -html sibling.
+    Dim htmlPath As String
+    htmlPath = StickShiftConfig.HtmlDir() & toolFile
+    If Not fso.FileExists(htmlPath) Then
+        MsgBox "Tool not found:" & vbLf & htmlPath & vbLf & vbLf & _
+               "Install it first with Install HTML Tool.", vbExclamation, "StickShift"
+        Exit Sub
+    End If
+    OpenInDefaultBrowser htmlPath   ' default browser via ShellExecute "open"
+
+    ' If seeds were given, assemble their bundle into -dist.
+    Dim msg As String: msg = "Opened: " & toolFile
+    If seedCount > 0 Then
+        Dim seedSlice() As String
+        ReDim seedSlice(0 To seedCount - 1)
+        For i = 0 To seedCount - 1: seedSlice(i) = seeds(i): Next i
+
+        Dim fC As Long, mC As Long, sC As Long
+        Dim assembled As String
+        assembled = AssembleBundle(root, seedSlice, depth, "outbound", "", fC, mC, sC)
+
+        Dim fullOutput As String
+        fullOutput = BundleHeader("bundle", fC, mC, sC, assembled) & assembled
+
+        Dim distDir As String: distDir = StickShiftConfig.DistDir()
+        If distDir <> "" Then
+            WriteUtf8 distDir & OUT_FILENAME, fullOutput
+            msg = msg & vbLf & "Skill context written to -dist\" & OUT_FILENAME & _
+                  " (paste it only if you reopen the tool from a fresh chat)."
+        End If
+    End If
+
+    MsgBox msg, vbInformation, "StickShift"
 End Sub

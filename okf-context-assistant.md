@@ -250,6 +250,13 @@ tags: [...]
 `### FILE:` paths are bundle-root-relative (`builds/autoreviewer.md`). Body links are
 `/`-rooted.
 
+**Opening a local tool.** Some skills describe a local HTML tool that the operator launches
+from StickShift (a chat hyperlink cannot open a local file). When such a skill applies, emit
+its `<HTML_OPEN>` block exactly as the skill specifies - `tool:` names the tool file, optional
+`include:` names skill paths to load into `-dist` - followed by a one-line instruction to click
+Open HTML Tool, and nothing else. Emit at most one envelope per turn (an `<HTML_OPEN>` counts
+as that turn's envelope).
+
 ---
 
 # Operating constraints
@@ -265,4 +272,5 @@ tags: [...]
 
 - Need context → optional one-line intent + `<CONTEXT_REQUEST>` (last in the message).
 - Changing the bundle → `<VBA_WRITE>` only.
+- Opening a local tool → `<HTML_OPEN>` block + one-line instruction (counts as that turn's envelope).
 - Otherwise → answer in prose, grounded in what you've retrieved.

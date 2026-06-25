@@ -101,12 +101,16 @@ Sub CreateStickShiftDashboard()
     ws.Rows("12").RowHeight = 46     ' grid row 3 buttons
     ws.Rows("13").RowHeight = 60     ' grid row 3 descriptions
     ws.Rows("14").RowHeight = 14     ' divider
-    ws.Rows("15").RowHeight = 38     ' Initialize Context (demoted)
-    ws.Rows("16").RowHeight = 28     ' Initialize Context label
-    ws.Rows("17").RowHeight = 38     ' Restart Setup Wizard (demoted)
-    ws.Rows("18").RowHeight = 28     ' Restart Setup Wizard label
-    ws.Rows("19").RowHeight = 16     ' footer
-    ws.Rows("20").RowHeight = 8      ' bottom padding
+    ws.Rows("15").RowHeight = 38     ' Install HTML Tool (demoted)
+    ws.Rows("16").RowHeight = 28     ' Install HTML Tool label
+    ws.Rows("17").RowHeight = 38     ' Open HTML Tool (demoted)
+    ws.Rows("18").RowHeight = 28     ' Open HTML Tool label
+    ws.Rows("19").RowHeight = 38     ' Initialize Context (demoted)
+    ws.Rows("20").RowHeight = 28     ' Initialize Context label
+    ws.Rows("21").RowHeight = 38     ' Restart Setup Wizard (demoted)
+    ws.Rows("22").RowHeight = 28     ' Restart Setup Wizard label
+    ws.Rows("23").RowHeight = 16     ' footer
+    ws.Rows("24").RowHeight = 8      ' bottom padding
 
     ' -- Background --
     ws.Cells.Interior.Color = RGB(248, 250, 252)
@@ -190,19 +194,29 @@ Sub CreateStickShiftDashboard()
     r.Borders(xlEdgeBottom).Color = RGB(203, 213, 225)
     r.Borders(xlEdgeBottom).Weight = xlThin
 
-    ' -- Initialize Context (demoted) --
+    ' -- Install HTML Tool (demoted) --
     MakeDemotedButton ws, 15, _
+        "Install HTML Tool", "InstallHtmlTool", RGB(71, 85, 105), _
+        "Install a new HTML tool (.html) and extract its companion skill."
+
+    ' -- Open HTML Tool (demoted) --
+    MakeDemotedButton ws, 17, _
+        "Open HTML Tool", "OpenHtmlTool", RGB(109, 40, 217), _
+        "Read <HTML_OPEN> block from clipboard and launch the tool."
+
+    ' -- Initialize Context (demoted) --
+    MakeDemotedButton ws, 19, _
         "Initialize Context", "BootstrapBundle", RGB(5, 150, 105), _
         "First-time setup: seeds a new, empty context." & vbLf & _
         "(Moves into the setup wizard later.)"
 
     ' -- Restart Setup Wizard (demoted) --
-    MakeDemotedButton ws, 17, _
+    MakeDemotedButton ws, 21, _
         "Restart Setup Wizard", "ReenableWizard", RGB(71, 85, 105), _
         "Reset and rerun the guided setup wizard from Step 1."
 
     ' -- Footer --
-    Set r = ws.Range("B19:D19"): r.Merge
+    Set r = ws.Range("B23:D23"): r.Merge
     r.Value = "Part of StickShift"
     r.Font.Size = 8: r.Font.Color = RGB(148, 163, 184)
     r.VerticalAlignment = xlVAlignCenter

@@ -87,3 +87,24 @@ Public Function DistDir() As String
 
     DistDir = dist
 End Function
+
+
+Public Function HtmlDir() As String
+    Dim root As String
+    root = BundleRoot()
+    If root = "" Then HtmlDir = "": Exit Function
+
+    ' Strip the trailing backslash, append -html\.
+    Dim stripped As String: stripped = Left(root, Len(root) - 1)
+    Dim h As String:        h = stripped & "-html\"
+
+    Dim fso As Object
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If Not fso.FolderExists(h) Then
+        On Error Resume Next
+        fso.CreateFolder h
+        On Error GoTo 0
+    End If
+
+    HtmlDir = h
+End Function
