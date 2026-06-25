@@ -1,0 +1,2300 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StickShift Network CRM</title>
+<style>
+  :root {
+    --bg-color: #0b0f19;
+    --card-bg: #111827;
+    --panel-bg: #0f172a;
+    --text-primary: #f9fafb;
+    --text-secondary: #9ca3af;
+    --text-muted: #6b7280;
+    --border-color: #1f2937;
+    --border-hover: #374151;
+    
+    --primary: #6366f1;
+    --primary-hover: #4f46e5;
+    --primary-soft: rgba(99, 102, 241, 0.15);
+    --success: #10b981;
+    --success-hover: #059669;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    
+    --status-recent: #10b981;
+    --status-active: #f59e0b;
+    --status-cold: #ef4444;
+    --status-unknown: #6b7280;
+    
+    --sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.5;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #374151;
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #4b5563;
+  }
+
+  /* Base buttons */
+  button {
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    color: var(--text-primary);
+    padding: 7px 12px;
+    transition: background-color 0.15s, border-color 0.15s, transform 0.1s;
+    outline: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  button:hover {
+    border-color: var(--text-secondary);
+    background-color: #1f2937;
+  }
+  button:active {
+    transform: scale(0.98);
+  }
+  button.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  .btn-primary {
+    background-color: var(--primary);
+    border-color: var(--primary);
+    font-weight: 600;
+  }
+  .btn-primary:hover {
+    background-color: var(--primary-hover);
+    border-color: var(--primary-hover);
+  }
+
+  .btn-success {
+    background-color: var(--success);
+    border-color: var(--success);
+    font-weight: 600;
+  }
+  .btn-success:hover {
+    background-color: var(--success-hover);
+    border-color: var(--success-hover);
+  }
+
+  .btn-danger {
+    background-color: transparent;
+    border-color: var(--danger);
+    color: var(--danger);
+  }
+  .btn-danger:hover {
+    background-color: var(--danger);
+    color: #fff;
+  }
+
+  .btn-icon {
+    padding: 6px;
+    border-radius: 50%;
+  }
+
+  /* Form Elements */
+  input, textarea, select {
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--text-primary);
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 8px 10px;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  input:focus, textarea:focus, select:focus {
+    border-color: var(--primary);
+  }
+  label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    margin-bottom: 5px;
+  }
+  .form-group {
+    margin-bottom: 15px;
+  }
+
+  /* Top Header */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 20px;
+    background-color: var(--card-bg);
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: var(--shadow-md);
+    z-index: 10;
+  }
+  .brand {
+    font-weight: 800;
+    font-size: 1.15rem;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #a5b4fc 0%, #6366f1 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .brand-dot {
+    width: 8px;
+    height: 8px;
+    background-color: var(--primary);
+    border-radius: 50%;
+  }
+  .spacer {
+    flex: 1;
+  }
+  .stamp {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+  .actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  /* Main Workspace Layout */
+  .workspace {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* Sidebar styling */
+  .sidebar {
+    width: 320px;
+    border-right: 1px solid var(--border-color);
+    background-color: #090d16;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .sidebar-search-box {
+    padding: 16px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .filter-row {
+    display: flex;
+    gap: 8px;
+  }
+  .filter-row select {
+    padding: 6px 8px;
+    font-size: 11.5px;
+    background-color: var(--card-bg);
+  }
+  
+  .contact-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  /* Contact List Card */
+  .contact-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px;
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .contact-card:hover {
+    border-color: var(--border-hover);
+    background-color: #17253d;
+  }
+  .contact-card.active {
+    background-color: var(--primary-soft);
+    border-color: var(--primary);
+  }
+  .contact-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .contact-card-name {
+    font-weight: 600;
+    font-size: 13.5px;
+    color: var(--text-primary);
+  }
+  .contact-card-role {
+    font-size: 12px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .contact-card-comp {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 500;
+    background: #1f2937;
+    padding: 1px 6px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-top: 4px;
+  }
+  .contact-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+    margin-top: 4px;
+  }
+  .contact-card-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .dirty-indicator {
+    width: 6px;
+    height: 6px;
+    background-color: var(--primary);
+    border-radius: 50%;
+    position: absolute;
+    top: 6px;
+    right: 6px;
+  }
+
+  /* Main Panel Container */
+  .main-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--panel-bg);
+    overflow: hidden;
+  }
+
+  /* Profile Details Pane */
+  .detail-view {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* Empty State / Welcome Screen */
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    text-align: center;
+    color: var(--text-secondary);
+  }
+  .empty-icon {
+    width: 64px;
+    height: 64px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+  .empty-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+  }
+  .empty-desc {
+    max-width: 420px;
+    font-size: 13.5px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin-bottom: 24px;
+  }
+
+  /* Dashboard Stats Grid */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    width: 100%;
+    max-width: 800px;
+    margin-bottom: 24px;
+  }
+  .stat-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: left;
+  }
+  .stat-val {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-top: 4px;
+  }
+  .stat-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  /* Dashboard activity widget */
+  .dash-widget {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 20px;
+    width: 100%;
+    max-width: 800px;
+    text-align: left;
+  }
+  .dash-widget-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 8px;
+  }
+  .dash-activity-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    font-size: 12.5px;
+  }
+  .dash-activity-item:last-child {
+    border-bottom: none;
+  }
+  .dash-activity-date {
+    font-family: var(--mono);
+    color: var(--text-secondary);
+    flex-shrink: 0;
+  }
+  .dash-activity-desc {
+    color: var(--text-primary);
+    flex-grow: 1;
+  }
+  .dash-activity-name {
+    color: var(--primary);
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* Profile header card */
+  .profile-header-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    position: relative;
+    box-shadow: var(--shadow-sm);
+  }
+  .profile-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 12px;
+    background-color: var(--primary-soft);
+    color: var(--primary);
+    font-size: 24px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-transform: uppercase;
+    flex-shrink: 0;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+  }
+  .profile-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .profile-name-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+  .profile-name {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .profile-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+  }
+  .badge-supervisor { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+  .badge-peer { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+  .badge-sponsor { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+  .badge-other { background: rgba(107, 114, 128, 0.15); color: #9ca3af; }
+
+  .profile-title {
+    font-size: 13.5px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+  }
+  .profile-fields-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+    font-size: 12.5px;
+  }
+  .profile-field-item {
+    display: flex;
+    gap: 6px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .profile-field-label {
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+  .profile-field-val {
+    color: var(--text-primary);
+  }
+  .profile-tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
+  }
+  .tag-pill {
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: var(--mono);
+  }
+
+  .profile-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-self: flex-start;
+  }
+
+  /* Two-column details body */
+  .profile-body-grid {
+    display: grid;
+    grid-template-columns: 3fr 2fr;
+    gap: 20px;
+  }
+  @media (max-width: 768px) {
+    .profile-body-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Details Panel Cards */
+  .detail-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .detail-card-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 6px;
+  }
+  .markdown-content {
+    font-size: 13px;
+    line-height: 1.6;
+    color: #e5e7eb;
+  }
+  .markdown-content p {
+    margin-bottom: 10px;
+  }
+  .markdown-content p:last-child {
+    margin-bottom: 0;
+  }
+  .markdown-content ul {
+    padding-left: 20px;
+    margin-bottom: 10px;
+  }
+  .markdown-content li {
+    margin-bottom: 4px;
+  }
+
+  /* Timeline Styles */
+  .timeline {
+    position: relative;
+    padding-left: 20px;
+    border-left: 2px solid var(--border-color);
+    margin-left: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .timeline-item {
+    position: relative;
+  }
+  .timeline-dot {
+    position: absolute;
+    left: -26px;
+    top: 5px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: var(--primary);
+    border: 2px solid var(--card-bg);
+  }
+  .timeline-date {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .timeline-content {
+    font-size: 12.5px;
+    color: var(--text-primary);
+    line-height: 1.5;
+  }
+
+  /* Form Editors */
+  .editor-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 600px) {
+    .editor-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Interactions structured editor */
+  .log-editor-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }
+  .log-editor-table th {
+    text-align: left;
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .log-editor-table td {
+    padding: 6px;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: top;
+  }
+  .log-editor-row-del {
+    text-align: center;
+    width: 40px;
+  }
+
+  /* Scrims and Modals */
+  .scrim {
+    position: fixed;
+    inset: 0;
+    background: rgba(9, 13, 22, 0.7);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 100;
+  }
+  .scrim.open {
+    display: flex;
+  }
+  .modal {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+    width: 100%;
+    max-width: 580px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 24px;
+    gap: 16px;
+  }
+  .modal h2 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .modal p.muted {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  .modal-textarea {
+    width: 100%;
+    height: 240px;
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    padding: 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+    resize: none;
+    outline: none;
+  }
+  .modal-foot {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+  .modal-foot .left-btn {
+    margin-right: auto;
+  }
+  .envelope {
+    font-family: var(--mono);
+    font-size: 11px;
+    white-space: pre;
+    overflow: auto;
+    background: #05080f;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px;
+    max-height: 40vh;
+    color: #38bdf8;
+  }
+  .err {
+    color: var(--danger);
+    font-size: 12.5px;
+  }
+
+  /* Toast notification */
+  .toast {
+    position: fixed;
+    bottom: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--primary);
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s, transform 0.2s;
+    z-index: 200;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translate(-50%, -5px);
+  }
+
+  /* Onboarding Panel */
+  .ss-panel {
+    display: none;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background-color: var(--card-bg);
+    padding: 16px;
+    margin: 16px 20px;
+    box-shadow: var(--shadow-lg);
+    flex-direction: column;
+    gap: 10px;
+  }
+  .ss-panel.open {
+    display: flex;
+  }
+  .ss-panel-title {
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .ss-branch {
+    display: none;
+    border-top: 1px solid var(--border-color);
+    padding-top: 10px;
+    margin-top: 4px;
+  }
+  .ss-branch.show {
+    display: block;
+  }
+  .ss-branch ol {
+    padding-left: 16px;
+    margin-bottom: 8px;
+  }
+  .ss-branch li {
+    font-size: 12.5px;
+    color: #cbd5e1;
+    margin-bottom: 4px;
+  }
+  .ss-btn-group {
+    display: flex;
+    gap: 8px;
+  }
+
+  /* Footer */
+  footer {
+    padding: 8px 20px;
+    border-top: 1px solid var(--border-color);
+    background-color: var(--card-bg);
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 10;
+  }
+  .ss-foot {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    padding: 0;
+    font-size: 12px;
+  }
+  .ss-foot:hover {
+    color: var(--text-primary);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand"><div class="brand-dot"></div> StickShift Network CRM</div>
+  <div class="spacer"></div>
+  <span class="stamp" id="stamp">No bundle loaded</span>
+  <div class="actions">
+    <button id="loadAllBtn">Load all</button>
+    <button id="loadBtn" class="btn-primary">Load Bundle</button>
+    <button id="saveBtn" class="btn-success disabled">Save Changes (VBA Envelope)</button>
+  </div>
+</header>
+
+<div class="workspace">
+  <!-- Left Sidebar (Contacts List) -->
+  <div class="sidebar">
+    <div class="sidebar-search-box">
+      <input type="text" id="searchBar" placeholder="Search contacts...">
+      <div class="filter-row">
+        <select id="filterRelationship" aria-label="Filter by relationship">
+          <option value="">All Relationships</option>
+        </select>
+        <select id="filterComponent" aria-label="Filter by component">
+          <option value="">All Components</option>
+        </select>
+      </div>
+      <div class="filter-row">
+        <select id="filterTag" aria-label="Filter by tag">
+          <option value="">All Tags</option>
+        </select>
+        <select id="sortOrder" aria-label="Sort contacts">
+          <option value="name">Sort: Name (A-Z)</option>
+          <option value="recent">Sort: Last Contact</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="contact-list" id="contactList">
+      <div class="empty-state" style="padding: 20px;">
+        <p style="font-size: 12.5px; color: var(--text-muted);">No contacts loaded. Use "Load Bundle" to import your network data.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main View Panel -->
+  <div class="main-panel">
+    <div class="detail-view" id="detailView">
+      <!-- Default Dashboard Welcome Screen -->
+      <div class="empty-state">
+        <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 005.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+        <h1 class="empty-title">Network Contact Manager</h1>
+        <p class="empty-desc">
+          Drag &amp; drop your <code>StickShift-context.md</code> bundle file anywhere on the window, or click Load Bundle above to begin managing your professional network offline.
+        </p>
+        
+        <div class="stats-grid" id="dashStats" style="display: none;">
+          <div class="stat-card">
+            <div class="stat-label">Total Contacts</div>
+            <div class="stat-val" id="statTotal">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Active (<=90d)</div>
+            <div class="stat-val" id="statActive">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Cold (>90d)</div>
+            <div class="stat-val" id="statCold">0</div>
+          </div>
+        </div>
+
+        <div class="dash-widget" id="dashActivity" style="display: none;">
+          <div class="dash-widget-title">Recent Interactions</div>
+          <div id="dashActivityList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Onboarding Panel -->
+<div class="ss-panel" id="ssPanel">
+  <div class="ss-panel-title">
+    <span>* Setup with StickShift</span>
+  </div>
+  <p style="font-size: 13px; color: #cbd5e1;">
+    StickShift is an Excel cockpit that gives your assistant a memory and launches local tools. This CRM tool works standalone or integrated.
+  </p>
+  <p style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">
+    Are you using StickShift?
+  </p>
+  <div class="ss-btn-group">
+    <button class="btn-sec" id="ssYes">Yes - set it up</button>
+    <button class="btn-sec" id="ssNo">No</button>
+  </div>
+  <div class="ss-branch" id="ssBranchYes">
+    <ol>
+      <li>In StickShift, click <strong>Install HTML Tool</strong> and select this file to register it.</li>
+      <li>Or copy the skill and paste into <strong>Apply Write Envelope</strong>:
+        <button id="ssCopySkill" style="margin-top: 6px; display: block;">Copy skill</button>
+      </li>
+    </ol>
+  </div>
+  <div class="ss-branch" id="ssBranchNo">
+    <p style="font-size: 12.5px; color: #cbd5e1;">
+      Use this tool standalone by dropping your <code>StickShift-context.md</code> bundle file anywhere on this window to browse and edit.
+    </p>
+  </div>
+</div>
+
+<footer>
+  <span>&copy; 2026 StickShift CRM Integration</span>
+  <button class="ss-foot" id="ssFootBtn"><span>* Part of StickShift -></span></button>
+</footer>
+
+<!-- Load Modal -->
+<div class="scrim" id="loadScrim">
+  <div class="modal">
+    <h2>Load Context Bundle</h2>
+    <p class="muted">Paste the markdown text bundle, or drag &amp; drop your bundle file here. The tool parses contact files and displays them.</p>
+    
+    <div id="dropZone" style="border: 2px dashed var(--border-color); border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; background: #0f172a; transition: border-color 0.2s;">
+      <span style="color: var(--text-secondary); font-size: 13px;">Drag &amp; drop your <code>.md</code> bundle file here, or <strong>click to browse</strong></span>
+    </div>
+    <input type="file" id="fileInput" accept=".md,.txt" style="display: none;">
+
+    <textarea class="modal-textarea" id="loadText" placeholder="<!-- OKF-CONTEXT-BUNDLE... -->&#10;<!-- OKF:BEGIN concept=network/contacts/heather-royce.md -->&#10;---&#10;type: Contact&#10;..."></textarea>
+    <div class="err" id="loadErr"></div>
+    <div class="modal-foot">
+      <button id="loadCancel">Cancel</button>
+      <button id="loadDo" class="btn-primary">Load Bundle</button>
+    </div>
+  </div>
+</div>
+
+<!-- Export Modal -->
+<div class="scrim" id="expScrim">
+  <div class="modal">
+    <h2>Save Changes (VBA Envelope)</h2>
+    <p class="muted">Copy this envelope and paste it into StickShift's **Apply Write Envelope** input to write changes back to your local files.</p>
+    <div class="envelope" id="expBox"></div>
+    <div class="modal-foot">
+      <button id="expClose">Close</button>
+      <button id="expCopy" class="btn-primary">Copy to clipboard</button>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Log Interaction Modal -->
+<div class="scrim" id="quickLogScrim">
+  <div class="modal">
+    <h2>Quick Log Interaction</h2>
+    <div class="form-group">
+      <label for="quickLogDate">Date (YYYY-MM-DD)</label>
+      <input type="text" id="quickLogDate" placeholder="YYYY-MM-DD">
+    </div>
+    <div class="form-group">
+      <label for="quickLogDesc">Description</label>
+      <textarea id="quickLogDesc" style="height: 100px;" placeholder="What did you do / discuss?"></textarea>
+    </div>
+    <div class="modal-foot">
+      <button id="quickLogCancel">Cancel</button>
+      <button id="quickLogSave" class="btn-primary">Log Interaction</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Identity Declaration -->
+<script>
+  window.STICKSHIFT_TOOL = {
+    id: "stickshift-network",
+    file: "stickshift-network.html",
+    skillSlug: "stickshift-network",
+    title: "StickShift Network",
+    version: "0.1",
+    skill: "stickshift-network.skill.md",
+    io: "client-only"
+  };
+</script>
+
+<!-- Embedded Companion Skill -->
+<script type="text/markdown" id="stickshift-skill" data-skill-slug="stickshift-network">
+---
+type: Skill
+okf_version: "0.1"
+title: StickShift Network
+description: Recall, draft, and update network and contact information stored in OKF under the /network/contacts/ folder. Show it visually by opening stickshift-network.html; the operator loads the network bundle and the tool renders a beautiful interactive CRM dashboard. Edit contacts, log new interactions (which automatically updates the last contact date), or draft new contact profiles. The tool exports only the modified files as a VBA_WRITE envelope.
+tags:
+  - skill
+  - html-tool
+  - crm-tool
+  - network-management
+  - contact-manager
+---
+
+# stickshift-network
+
+## Purpose
+View, edit, and manage contact files and interaction history in your text-based CRM. The tool runs on the operator's machine, parses contacts under `/network/contacts/`, and exports changes as a VBA_WRITE envelope.
+
+## When to use this skill
+- The operator wants to view their professional contacts and networks.
+- The operator wants to add, edit, or log interactions with individuals in their CRM directory.
+- The operator needs to export contact updates back to files.
+
+## How to open the tool
+A local HTML tool cannot be opened from a chat hyperlink - the operator launches it from StickShift. Give the operator this block verbatim (these exact lines, no code fence), then one instruction line, and nothing else:
+
+<HTML_OPEN>
+tool: stickshift-network.html
+include:
+- skills/stickshift-network.md
+</HTML_OPEN>
+
+Instruction line: "Copy the block above and click Open HTML Tool in StickShift."
+</script>
+
+<!-- Controller Logic -->
+<script>
+  "use strict";
+
+  // ---- State ----
+  var contacts = [];       // [{path: string, originalText: string, isNew: boolean, fields: {}, sections: {summary, notes, log, extra}}]
+  var activeContact = null;// reference to active contact object
+  var activeMode = "view"; // "view" | "edit"
+  var newContactCounter = 0;
+
+  // ---- Parser ----
+  function parseList(v) {
+    if (!v) return [];
+    v = v.trim();
+    if (v[0] === "[") v = v.slice(1, v.lastIndexOf("]"));
+    return v.split(",").map(function(s) { return s.trim(); }).filter(Boolean);
+  }
+
+  function parseFrontmatter(text) {
+    var lines = text.replace(/\r\n/g, "\n").split("\n");
+    var keys = [], map = {}, body = text, i = 0;
+    if (lines[0] && lines[0].trim() === "---") {
+      i = 1;
+      while (i < lines.length && lines[i].trim() !== "---") {
+        var line = lines[i];
+        var idx = line.indexOf(":");
+        if (idx > 0) {
+          var k = line.slice(0, idx).trim();
+          var v = line.slice(idx + 1).trim();
+          if (k === "tags") {
+            v = parseList(v);
+          } else {
+            if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
+              v = v.slice(1, -1);
+            }
+          }
+          keys.push(k);
+          map[k] = v;
+        }
+        i++;
+      }
+      body = lines.slice(i + 1).join("\n").replace(/^\n+/, "").replace(/\s+$/, "");
+    }
+    return { keys: keys, map: map, body: body };
+  }
+
+  function parseBodySections(body) {
+    var lines = body.replace(/\r\n/g, "\n").split("\n");
+    var currentSection = "";
+    var sections = {
+      summary: "",
+      notes: "",
+      log: "",
+      extra: ""
+    };
+    var sectionLines = [];
+
+    function flushSection() {
+      var content = sectionLines.join("\n").trim();
+      if (currentSection === "summary") {
+        sections.summary = content;
+      } else if (currentSection === "notes") {
+        sections.notes = content;
+      } else if (currentSection === "log") {
+        sections.log = content;
+      } else if (currentSection) {
+        sections.extra += (sections.extra ? "\n\n" : "") + "# " + currentSection + "\n" + content;
+      } else {
+        sections.extra += (sections.extra ? "\n\n" : "") + content;
+      }
+    }
+
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i];
+      var trimmed = line.trim();
+      if (trimmed.startsWith("# ")) {
+        flushSection();
+        var heading = trimmed.substring(2).trim().toLowerCase();
+        if (heading === "summary") {
+          currentSection = "summary";
+        } else if (heading === "notes") {
+          currentSection = "notes";
+        } else if (heading === "interaction log" || heading === "interaction-log" || heading === "log") {
+          currentSection = "log";
+        } else {
+          currentSection = trimmed.substring(2).trim();
+        }
+        sectionLines = [];
+      } else {
+        sectionLines.push(line);
+      }
+    }
+    flushSection();
+    return sections;
+  }
+
+  function parseInteractionLog(logText) {
+    if (!logText) return [];
+    var lines = logText.split("\n");
+    var entries = [];
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i].trim();
+      if (line.startsWith("- ") || line.startsWith("* ")) {
+        var content = line.substring(2).trim();
+        var match = /^(\d{4}-\d{2}-\d{2})\s*:\s*(.*)$/.exec(content);
+        if (match) {
+          entries.push({
+            date: match[1],
+            desc: match[2]
+          });
+        } else {
+          entries.push({
+            date: "",
+            desc: content
+          });
+        }
+      }
+    }
+    // Sort chronological: newest first by date, empty dates at the bottom
+    entries.sort(function(a, b) {
+      if (!a.date) return 1;
+      if (!b.date) return -1;
+      return b.date.localeCompare(a.date);
+    });
+    return entries;
+  }
+
+  function serializeInteractionLog(entries) {
+    entries.sort(function(a, b) {
+      if (!a.date) return 1;
+      if (!b.date) return -1;
+      return b.date.localeCompare(a.date);
+    });
+    return entries.map(function(e) {
+      if (e.date) {
+        return "- " + e.date + ": " + e.desc;
+      } else {
+        return "- " + e.desc;
+      }
+    }).join("\n");
+  }
+
+  function loadFromText(text) {
+    var lines = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+    var parsed = [];
+    var currentPath = "";
+    var currentLines = [];
+
+    function flushBlock() {
+      if (currentPath) {
+        var content = currentLines.join("\n").trim();
+        if (content) {
+          var fm = parseFrontmatter(content);
+          var type = (fm.map.type || "").toLowerCase();
+          if (type === "contact" || currentPath.indexOf("network/contacts/") === 0) {
+            var sections = parseBodySections(fm.body);
+            parsed.push({
+              path: currentPath,
+              originalText: content,
+              isNew: false,
+              fields: fm.map,
+              sections: sections
+            });
+          }
+        }
+      }
+    }
+
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i];
+      var trimLine = line.trim();
+
+      if (trimLine.indexOf("### FILE:") === 0) {
+        flushBlock();
+        currentPath = trimLine.slice(9).trim();
+        currentLines = [];
+        continue;
+      }
+
+      var okfMatch = /<!--\s*OKF:BEGIN\s+concept=["']?([^\s"'>]+)/i.exec(trimLine);
+      if (okfMatch) {
+        flushBlock();
+        currentPath = okfMatch[1].trim();
+        currentLines = [];
+        continue;
+      }
+
+      if (trimLine.indexOf("### END FILE") === 0 || trimLine.indexOf("<!-- OKF:END") === 0) {
+        flushBlock();
+        currentPath = "";
+        currentLines = [];
+        continue;
+      }
+
+      if (!currentPath) {
+        continue;
+      }
+
+      currentLines.push(line);
+    }
+    flushBlock();
+
+    // Support single file load fallback
+    if (!parsed.length && text.trim()) {
+      var singleFm = parseFrontmatter(text);
+      var singleType = (singleFm.map.type || "").toLowerCase();
+      if (singleType === "contact") {
+        var singleSections = parseBodySections(singleFm.body);
+        parsed.push({
+          path: "network/contacts/loaded-contact.md",
+          originalText: text,
+          isNew: false,
+          fields: singleFm.map,
+          sections: singleSections
+        });
+      }
+    }
+
+    if (parsed.length > 0) {
+      contacts = parsed;
+      activeContact = null;
+      activeMode = "view";
+      
+      rebuildFilters();
+      renderSidebar();
+      renderDashboard();
+      updateSaveButtonState();
+      stampNow();
+      return true;
+    }
+    return false;
+  }
+
+  // ---- Change Tracking & Serialization ----
+  function serializeContact(c) {
+    var f = c.fields, out = "---\n", seen = {};
+    var fmOrder = ["type", "name", "role", "component", "email", "last_contact", "relationship", "tags", "office", "phone", "location"];
+    
+    // Ensure fixed contact type
+    f.type = "Contact";
+
+    fmOrder.forEach(function(k) {
+      if (f[k] !== undefined && f[k] !== null && f[k] !== "") {
+        if (k === "tags") {
+          out += "tags: [" + f[k].join(", ") + "]\n";
+        } else {
+          out += k + ": " + f[k] + "\n";
+        }
+        seen[k] = 1;
+      }
+    });
+
+    Object.keys(f).forEach(function(k) {
+      if (!seen[k] && f[k] !== undefined && f[k] !== null && f[k] !== "") {
+        if (Array.isArray(f[k])) {
+          out += k + ": [" + f[k].join(", ") + "]\n";
+        } else {
+          out += k + ": " + f[k] + "\n";
+        }
+      }
+    });
+
+    out += "---\n\n";
+    out += "# Summary\n" + (c.sections.summary || "").trim() + "\n\n";
+    out += "# Notes\n" + (c.sections.notes || "").trim() + "\n\n";
+    out += "# Interaction log\n" + (c.sections.log || "").trim() + "\n";
+    
+    if (c.sections.extra && c.sections.extra.trim()) {
+      out += "\n" + c.sections.extra.trim() + "\n";
+    }
+    
+    return out;
+  }
+
+  function isContactDirty(c) {
+    if (c.isNew) return true;
+    return serializeContact(c).trim() !== c.originalText.trim();
+  }
+
+  function getDirtyContacts() {
+    return contacts.filter(isContactDirty);
+  }
+
+  function updateSaveButtonState() {
+    var saveBtn = document.getElementById("saveBtn");
+    var dirty = getDirtyContacts();
+    if (dirty.length > 0) {
+      saveBtn.classList.remove("disabled");
+      saveBtn.textContent = "Save Changes (VBA Envelope - " + dirty.length + ")";
+    } else {
+      saveBtn.classList.add("disabled");
+      saveBtn.textContent = "Save Changes (VBA Envelope)";
+    }
+  }
+
+  // ---- Status & Date Utilities ----
+  function getContactStatus(lastContact) {
+    if (!lastContact) return "unknown";
+    
+    var parts = lastContact.split("-");
+    if (parts.length !== 3) return "unknown";
+    
+    var lastDate = new Date(parts[0], parts[1] - 1, parts[2]);
+    var today = new Date();
+    today.setHours(0,0,0,0);
+    
+    var diffTime = today - lastDate;
+    var diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays <= 30) return "recent";
+    if (diffDays <= 90) return "active";
+    return "cold";
+  }
+
+  function formatDaysAgo(lastContact) {
+    if (!lastContact) return "Never contacted";
+    
+    var parts = lastContact.split("-");
+    if (parts.length !== 3) return lastContact;
+    
+    var lastDate = new Date(parts[0], parts[1] - 1, parts[2]);
+    var today = new Date();
+    today.setHours(0,0,0,0);
+    
+    var diffTime = today - lastDate;
+    var diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) return "Future date";
+    if (diffDays === 0) return "Today";
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays <= 30) return diffDays + " days ago";
+    
+    var diffMonths = Math.floor(diffDays / 30);
+    if (diffMonths === 1) return "1 month ago";
+    return diffMonths + " months ago";
+  }
+
+  // ---- UI Filtering & Dropdowns ----
+  function rebuildFilters() {
+    var relationships = {};
+    var components = {};
+    var tags = {};
+    
+    contacts.forEach(function(c) {
+      if (c.fields.relationship) relationships[c.fields.relationship] = true;
+      if (c.fields.component) components[c.fields.component] = true;
+      if (c.fields.tags && Array.isArray(c.fields.tags)) {
+        c.fields.tags.forEach(function(t) { tags[t] = true; });
+      }
+    });
+
+    populateSelect("filterRelationship", Object.keys(relationships).sort(), "All Relationships");
+    populateSelect("filterComponent", Object.keys(components).sort(), "All Components");
+    populateSelect("filterTag", Object.keys(tags).sort(), "All Tags");
+  }
+
+  function populateSelect(id, list, defaultText) {
+    var select = document.getElementById(id);
+    var currentVal = select.value;
+    select.innerHTML = '<option value="">' + esc(defaultText) + '</option>';
+    list.forEach(function(item) {
+      var opt = document.createElement("option");
+      opt.value = item;
+      opt.textContent = item;
+      select.appendChild(opt);
+    });
+    if (list.indexOf(currentVal) !== -1) {
+      select.value = currentVal;
+    }
+  }
+
+  // ---- Renderers ----
+  function renderSidebar() {
+    var listEl = document.getElementById("contactList");
+    
+    var query = document.getElementById("searchBar").value.toLowerCase();
+    var relFilter = document.getElementById("filterRelationship").value;
+    var compFilter = document.getElementById("filterComponent").value;
+    var tagFilter = document.getElementById("filterTag").value;
+    var sortBy = document.getElementById("sortOrder").value;
+    
+    var filtered = contacts.filter(function(c) {
+      var name = (c.fields.name || "").toLowerCase();
+      var role = (c.fields.role || "").toLowerCase();
+      var comp = (c.fields.component || "").toLowerCase();
+      var matchesSearch = name.indexOf(query) !== -1 || role.indexOf(query) !== -1 || comp.indexOf(query) !== -1;
+      
+      var matchesRel = !relFilter || c.fields.relationship === relFilter;
+      var matchesComp = !compFilter || c.fields.component === compFilter;
+      
+      var matchesTag = !tagFilter || (c.fields.tags && c.fields.tags.indexOf(tagFilter) !== -1);
+      
+      return matchesSearch && matchesRel && matchesComp && matchesTag;
+    });
+
+    // Sort contacts
+    filtered.sort(function(a, b) {
+      if (sortBy === "name") {
+        var na = (a.fields.name || "").toLowerCase();
+        var nb = (b.fields.name || "").toLowerCase();
+        return na.localeCompare(nb);
+      } else {
+        var da = a.fields.last_contact || "0000-00-00";
+        var db = b.fields.last_contact || "0000-00-00";
+        return db.localeCompare(da); // recency (newest first)
+      }
+    });
+
+    if (filtered.length === 0) {
+      listEl.innerHTML = '<div class="empty-state" style="padding: 20px;"><p style="font-size: 12.5px; color: var(--text-muted);">No matching contacts found.</p></div>';
+      return;
+    }
+
+    listEl.innerHTML = "";
+    filtered.forEach(function(c) {
+      var card = document.createElement("div");
+      var isDirty = isContactDirty(c);
+      var dirtyDot = isDirty ? '<div class="dirty-indicator"></div>' : '';
+      
+      card.className = "contact-card" + (activeContact && activeContact.path === c.path ? " active" : "");
+      
+      var status = getContactStatus(c.fields.last_contact);
+      var statusColor = "var(--status-" + status + ")";
+      var lastContactStr = formatDaysAgo(c.fields.last_contact);
+
+      card.innerHTML = dirtyDot +
+        '<div class="contact-card-header">' +
+          '<div class="contact-card-name">' + esc(c.fields.name || "Unnamed") + '</div>' +
+          '<span class="contact-status-dot" style="background-color: ' + statusColor + ';" title="Status: ' + status + '"></span>' +
+        '</div>' +
+        '<div class="contact-card-role">' + esc(c.fields.role || "No Role Specified") + '</div>' +
+        '<div><span class="contact-card-comp">' + esc(c.fields.component || "No Component") + '</span></div>' +
+        '<div class="contact-card-meta">' +
+          '<span>' + esc(c.fields.relationship || "No Relation") + '</span>' +
+          '<span>' + esc(lastContactStr) + '</span>' +
+        '</div>';
+      
+      card.onclick = function() {
+        if (activeMode === "edit" && isContactDirty(activeContact)) {
+          if (!confirm("Discard unsaved changes to " + (activeContact.fields.name || "contact") + "?")) {
+            return;
+          }
+        }
+        activeContact = c;
+        activeMode = "view";
+        renderSidebar();
+        renderActiveContact();
+      };
+      
+      listEl.appendChild(card);
+    });
+  }
+
+  function renderDashboard() {
+    var detailEl = document.getElementById("detailView");
+    
+    if (activeContact) {
+      renderActiveContact();
+      return;
+    }
+    
+    // Calculate stats
+    var total = contacts.length;
+    var activeCount = 0;
+    var coldCount = 0;
+    var allActivities = [];
+
+    contacts.forEach(function(c) {
+      var status = getContactStatus(c.fields.last_contact);
+      if (status === "recent" || status === "active") activeCount++;
+      if (status === "cold") coldCount++;
+
+      var logs = parseInteractionLog(c.sections.log);
+      logs.forEach(function(l) {
+        allActivities.push({
+          contact: c,
+          date: l.date,
+          desc: l.desc
+        });
+      });
+    });
+
+    // Sort recent activities newest first
+    allActivities.sort(function(a, b) {
+      return b.date.localeCompare(a.date);
+    });
+
+    detailEl.innerHTML = 
+      '<div class="empty-state">' +
+        '<svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+          '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 005.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />' +
+        '</svg>' +
+        '<h1 class="empty-title">CRM Dashboard</h1>' +
+        '<p class="empty-desc">Select a contact from the list or click <strong>Add Contact</strong> below to get started.</p>' +
+        '<button id="dashAddBtn" class="btn-primary" style="margin-bottom: 24px;">+ Add New Contact</button>' +
+        
+        '<div class="stats-grid">' +
+          '<div class="stat-card"><div class="stat-label">Total Contacts</div><div class="stat-val">' + total + '</div></div>' +
+          '<div class="stat-card"><div class="stat-label">Active (<=90d)</div><div class="stat-val" style="color: var(--status-recent);">' + activeCount + '</div></div>' +
+          '<div class="stat-card"><div class="stat-label">Cold (>90d)</div><div class="stat-val" style="color: var(--status-cold);">' + coldCount + '</div></div>' +
+        '</div>' +
+        
+        '<div class="dash-widget">' +
+          '<div class="dash-widget-title">Recent Interactions</div>' +
+          '<div id="dashActivityList"></div>' +
+        '</div>' +
+      '</div>';
+
+    document.getElementById("dashAddBtn").onclick = createNewContact;
+    
+    var actListEl = document.getElementById("dashActivityList");
+    if (allActivities.length === 0) {
+      actListEl.innerHTML = '<p style="color: var(--text-muted); font-size: 12.5px; padding: 10px 0;">No logged interactions yet.</p>';
+    } else {
+      actListEl.innerHTML = "";
+      allActivities.slice(0, 5).forEach(function(act) {
+        var item = document.createElement("div");
+        item.className = "dash-activity-item";
+        item.innerHTML = 
+          '<span class="dash-activity-date">' + esc(act.date || "No Date") + '</span>' +
+          '<span class="dash-activity-desc">' +
+            '<span class="dash-activity-name" onclick="selectContactByPath(\'' + escJs(act.contact.path) + '\')">' + esc(act.contact.fields.name) + '</span>: ' +
+            esc(act.desc) +
+          '</span>';
+        actListEl.appendChild(item);
+      });
+    }
+  }
+
+  function selectContactByPath(path) {
+    var c = contacts.filter(function(x) { return x.path === path; })[0];
+    if (c) {
+      activeContact = c;
+      activeMode = "view";
+      renderSidebar();
+      renderActiveContact();
+    }
+  }
+
+  function renderActiveContact() {
+    var detailEl = document.getElementById("detailView");
+    if (!activeContact) {
+      renderDashboard();
+      return;
+    }
+
+    if (activeMode === "view") {
+      renderContactViewMode(detailEl);
+    } else {
+      renderContactEditMode(detailEl);
+    }
+  }
+
+  function renderContactViewMode(el) {
+    var c = activeContact;
+    var rel = c.fields.relationship || "other";
+    var badgeClass = "badge-other";
+    if (rel === "supervisor" || rel === "peer" || rel === "sponsor") {
+      badgeClass = "badge-" + rel;
+    }
+    
+    var initials = getInitials(c.fields.name);
+    var status = getContactStatus(c.fields.last_contact);
+    var statusColor = "var(--status-" + status + ")";
+    var lastContactStr = formatDaysAgo(c.fields.last_contact);
+    
+    // Format Tags
+    var tagsHtml = "";
+    if (c.fields.tags && Array.isArray(c.fields.tags)) {
+      c.fields.tags.forEach(function(t) {
+        tagsHtml += '<span class="tag-pill">' + esc(t) + '</span>';
+      });
+    }
+    
+    // Format Timeline
+    var timelineHtml = "";
+    var logEntries = parseInteractionLog(c.sections.log);
+    if (logEntries.length === 0) {
+      timelineHtml = '<p style="color: var(--text-muted); font-size: 13px; font-style: italic;">No logged interactions.</p>';
+    } else {
+      timelineHtml += '<div class="timeline">';
+      logEntries.forEach(function(e) {
+        timelineHtml += 
+          '<div class="timeline-item">' +
+            '<div class="timeline-dot"></div>' +
+            '<div class="timeline-date">' + esc(e.date || "Unknown Date") + '</div>' +
+            '<div class="timeline-content">' + esc(e.desc) + '</div>' +
+          '</div>';
+      });
+      timelineHtml += '</div>';
+    }
+
+    el.innerHTML = 
+      '<div class="profile-header-card">' +
+        '<div class="profile-avatar">' + esc(initials) + '</div>' +
+        '<div class="profile-info">' +
+          '<div class="profile-name-row">' +
+            '<h1 class="profile-name">' + esc(c.fields.name || "Unnamed") + '</h1>' +
+            '<span class="profile-badge ' + badgeClass + '">' + esc(rel) + '</span>' +
+          '</div>' +
+          '<div class="profile-title">' + esc(c.fields.role || "No Role Specified") + ' &middot; <span style="font-weight: 600;">' + esc(c.fields.component || "TSA") + '</span></div>' +
+          '<div class="profile-fields-grid">' +
+            '<div class="profile-field-item"><span class="profile-field-label">Email:</span>' + 
+              (c.fields.email ? '<a href="mailto:' + escAttr(c.fields.email) + '" class="profile-field-val" style="color: var(--primary); text-decoration: none;">' + esc(c.fields.email) + '</a>' : '<span class="profile-field-val">--</span>') + '</div>' +
+            '<div class="profile-field-item"><span class="profile-field-label">Phone:</span><span class="profile-field-val">' + esc(c.fields.phone || "--") + '</span></div>' +
+            '<div class="profile-field-item"><span class="profile-field-label">Office:</span><span class="profile-field-val">' + esc(c.fields.office || "--") + '</span></div>' +
+            '<div class="profile-field-item"><span class="profile-field-label">Location:</span><span class="profile-field-val">' + esc(c.fields.location || "--") + '</span></div>' +
+            '<div class="profile-field-item"><span class="profile-field-label">Last Contact:</span>' +
+              '<span class="profile-field-val" style="display: inline-flex; align-items: center; gap: 6px;">' +
+                '<span style="width: 6px; height: 6px; border-radius: 50%; background-color: ' + statusColor + ';"></span>' +
+                esc(c.fields.last_contact || "--") + ' (' + lastContactStr + ')' +
+              '</span>' +
+            '</div>' +
+          '</div>' +
+          '<div class="profile-tags-container">' + tagsHtml + '</div>' +
+        '</div>' +
+        '<div class="profile-actions">' +
+          '<button class="btn-primary" id="btnQuickLog">Quick Log</button>' +
+          '<button id="btnEditContact">Edit Profile</button>' +
+        '</div>' +
+      '</div>' +
+      
+      '<div class="profile-body-grid">' +
+        '<div style="display: flex; flex-direction: column; gap: 20px;">' +
+          '<div class="detail-card">' +
+            '<div class="detail-card-title">Summary</div>' +
+            '<div class="markdown-content">' + formatMarkdown(c.sections.summary || "No summary provided.") + '</div>' +
+          '</div>' +
+          '<div class="detail-card">' +
+            '<div class="detail-card-title">Notes</div>' +
+            '<div class="markdown-content">' + formatMarkdown(c.sections.notes || "No notes provided.") + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="detail-card">' +
+          '<div class="detail-card-title">Interaction Timeline</div>' +
+          timelineHtml +
+        '</div>' +
+      '</div>';
+
+    document.getElementById("btnQuickLog").onclick = openQuickLogModal;
+    document.getElementById("btnEditContact").onclick = function() {
+      activeMode = "edit";
+      renderActiveContact();
+    };
+  }
+
+  function renderContactEditMode(el) {
+    var c = activeContact;
+    var tagsVal = (c.fields.tags && Array.isArray(c.fields.tags)) ? c.fields.tags.join(", ") : "";
+    
+    // Parse structured interaction log to show table editor
+    var logEntries = parseInteractionLog(c.sections.log);
+    var tableRows = "";
+    logEntries.forEach(function(e, idx) {
+      tableRows += 
+        '<tr id="logRow-' + idx + '">' +
+          '<td><input type="text" class="log-edit-date" style="font-family: var(--mono); padding: 4px 6px;" value="' + escAttr(e.date) + '" placeholder="YYYY-MM-DD"></td>' +
+          '<td><input type="text" class="log-edit-desc" style="padding: 4px 6px;" value="' + escAttr(e.desc) + '" placeholder="Describe the interaction"></td>' +
+          '<td class="log-editor-row-del"><button class="btn-danger btn-icon" onclick="deleteLogRow(' + idx + ')" title="Delete interaction">X</button></td>' +
+        '</tr>';
+    });
+
+    el.innerHTML = 
+      '<div class="detail-card" style="gap: 16px;">' +
+        '<div class="detail-card-title">Edit Contact Profile</div>' +
+        
+        '<div class="editor-grid">' +
+          '<div>' +
+            '<div class="form-group"><label for="editName">Full Name</label><input type="text" id="editName" value="' + escAttr(c.fields.name || "") + '"></div>' +
+            '<div class="form-group"><label for="editRole">Role / Title</label><input type="text" id="editRole" value="' + escAttr(c.fields.role || "") + '"></div>' +
+            '<div class="form-group"><label for="editComp">Component (e.g. TSA)</label><input type="text" id="editComp" value="' + escAttr(c.fields.component || "") + '"></div>' +
+            '<div class="form-group"><label for="editOffice">Office / Division</label><input type="text" id="editOffice" value="' + escAttr(c.fields.office || "") + '"></div>' +
+            '<div class="form-group"><label for="editEmail">Email Address</label><input type="text" id="editEmail" value="' + escAttr(c.fields.email || "") + '"></div>' +
+          '</div>' +
+          '<div>' +
+            '<div class="form-group"><label for="editRel">Relationship</label>' +
+              '<select id="editRel">' +
+                '<option value="peer">Peer</option>' +
+                '<option value="supervisor">Supervisor</option>' +
+                '<option value="sponsor">Sponsor</option>' +
+                '<option value="other">Other</option>' +
+              '</select>' +
+            '</div>' +
+            '<div class="form-group"><label for="editLast">Last Contact Date (YYYY-MM-DD)</label><input type="text" id="editLast" value="' + escAttr(c.fields.last_contact || "") + '"></div>' +
+            '<div class="form-group"><label for="editPhone">Phone Number</label><input type="text" id="editPhone" value="' + escAttr(c.fields.phone || "") + '"></div>' +
+            '<div class="form-group"><label for="editLoc">Location</label><input type="text" id="editLoc" value="' + escAttr(c.fields.location || "") + '"></div>' +
+            '<div class="form-group"><label for="editTags">Tags (comma-separated)</label><input type="text" id="editTags" value="' + escAttr(tagsVal) + '" placeholder="econ, leadership, ai"></div>' +
+          '</div>' +
+        '</div>' +
+        
+        '<div class="form-group">' +
+          '<label for="editSummary">Summary</label>' +
+          '<textarea id="editSummary" rows="4">' + esc(c.sections.summary || "") + '</textarea>' +
+        '</div>' +
+        
+        '<div class="form-group">' +
+          '<label for="editNotes">Notes</label>' +
+          '<textarea id="editNotes" rows="4">' + esc(c.sections.notes || "") + '</textarea>' +
+        '</div>' +
+
+        '<div class="form-group">' +
+          '<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-bottom: 8px;">' +
+            '<label style="margin-bottom: 0;">Interaction Log</label>' +
+            '<button onclick="addNewLogRow()">+ Add Row</button>' +
+          '</div>' +
+          '<table class="log-editor-table">' +
+            '<thead><tr><th>Date</th><th>Description</th><th class="log-editor-row-del">Del</th></tr></thead>' +
+            '<tbody id="logEditorBody">' + tableRows + '</tbody>' +
+          '</table>' +
+        '</div>' +
+        
+        '<div class="modal-foot" style="margin-top: 10px;">' +
+          '<button class="btn-danger left-btn" id="editDelete">Archive / Delete</button>' +
+          '<button id="editCancel">Cancel</button>' +
+          '<button class="btn-primary" id="editSave">Save Changes</button>' +
+        '</div>' +
+      '</div>';
+
+    // Set select relationship
+    document.getElementById("editRel").value = c.fields.relationship || "other";
+
+    document.getElementById("editCancel").onclick = function() {
+      // Discard edits
+      if (c.isNew && c.originalText === "__new__") {
+        // Discard newly added untouched contact
+        contacts = contacts.filter(function(x) { return x !== c; });
+        activeContact = null;
+        renderSidebar();
+        renderDashboard();
+      } else {
+        activeMode = "view";
+        renderActiveContact();
+      }
+    };
+
+    document.getElementById("editSave").onclick = applyContactEdits;
+    document.getElementById("editDelete").onclick = deleteActiveContact;
+  }
+
+  function getInitials(name) {
+    if (!name) return "?";
+    var parts = name.split(/\s+/);
+    if (parts.length === 1) return parts[0].substring(0, 2);
+    return parts[0].charAt(0) + parts[parts.length - 1].charAt(0);
+  }
+
+  function formatMarkdown(md) {
+    if (!md) return "";
+    var html = md
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    
+    var lines = html.split("\n");
+    var formatted = "";
+    var inList = false;
+    
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i].trim();
+      if (line.startsWith("- ") || line.startsWith("* ")) {
+        if (!inList) {
+          formatted += '<ul style="padding-left: 20px; margin-bottom: 8px;">';
+          inList = true;
+        }
+        formatted += "<li>" + processInline(line.substring(2).trim()) + "</li>";
+      } else {
+        if (inList) {
+          formatted += "</ul>";
+          inList = false;
+        }
+        if (line !== "") {
+          formatted += "<p>" + processInline(line) + "</p>";
+        }
+      }
+    }
+    if (inList) formatted += "</ul>";
+    return formatted;
+  }
+
+  function processInline(text) {
+    // Basic formatting: bold, links
+    return text
+      .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+      .replace(/\*([^*]+)\*/g, "<em>$1</em>")
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color: var(--primary);">$1</a>');
+  }
+
+  // ---- Interaction Log Editor Table helpers ----
+  window.addNewLogRow = function() {
+    var tbody = document.getElementById("logEditorBody");
+    var rowIdx = tbody.children.length;
+    var row = document.createElement("tr");
+    row.id = "logRow-" + rowIdx;
+    
+    // Default date is today
+    var todayStr = getTodayISOString();
+
+    row.innerHTML = 
+      '<td><input type="text" class="log-edit-date" style="font-family: var(--mono); padding: 4px 6px;" value="' + todayStr + '" placeholder="YYYY-MM-DD"></td>' +
+      '<td><input type="text" class="log-edit-desc" style="padding: 4px 6px;" value="" placeholder="Describe the interaction"></td>' +
+      '<td class="log-editor-row-del"><button class="btn-danger btn-icon" onclick="deleteLogRow(' + rowIdx + ')">X</button></td>';
+    tbody.appendChild(row);
+  };
+
+  window.deleteLogRow = function(idx) {
+    var row = document.getElementById("logRow-" + idx);
+    if (row) {
+      row.parentNode.removeChild(row);
+    }
+  };
+
+  function getTodayISOString() {
+    var d = new Date();
+    var y = d.getFullYear();
+    var m = String(d.getMonth() + 1).padStart(2, "0");
+    var day = String(d.getDate()).padStart(2, "0");
+    return y + "-" + m + "-" + day;
+  }
+
+  // ---- Controller Edit Actions ----
+  function createNewContact() {
+    newContactCounter++;
+    var slug = "new-contact-" + newContactCounter;
+    var newC = {
+      path: "network/contacts/" + slug + ".md",
+      originalText: "__new__",
+      isNew: true,
+      fields: {
+        type: "Contact",
+        name: "New Contact " + newContactCounter,
+        role: "Section Chief",
+        component: "TSA",
+        email: "",
+        last_contact: getTodayISOString(),
+        relationship: "peer",
+        tags: []
+      },
+      sections: {
+        summary: "",
+        notes: "",
+        log: "",
+        extra: ""
+      }
+    };
+    
+    contacts.push(newC);
+    activeContact = newC;
+    activeMode = "edit";
+    
+    renderSidebar();
+    renderActiveContact();
+  }
+
+  function applyContactEdits() {
+    var c = activeContact;
+    if (!c) return;
+
+    var nameVal = document.getElementById("editName").value.trim();
+    if (!nameVal) {
+      alert("Name is required.");
+      return;
+    }
+
+    c.fields.name = nameVal;
+    c.fields.role = document.getElementById("editRole").value.trim();
+    c.fields.component = document.getElementById("editComp").value.trim();
+    c.fields.office = document.getElementById("editOffice").value.trim();
+    c.fields.email = document.getElementById("editEmail").value.trim();
+    c.fields.relationship = document.getElementById("editRel").value;
+    c.fields.last_contact = document.getElementById("editLast").value.trim();
+    c.fields.phone = document.getElementById("editPhone").value.trim();
+    c.fields.location = document.getElementById("editLoc").value.trim();
+    
+    var tagsText = document.getElementById("editTags").value.trim();
+    c.fields.tags = tagsText ? tagsText.split(",").map(function(t) { return t.trim(); }).filter(Boolean) : [];
+
+    c.sections.summary = document.getElementById("editSummary").value.trim();
+    c.sections.notes = document.getElementById("editNotes").value.trim();
+    
+    // Read interaction logs from table
+    var logRows = document.querySelectorAll("#logEditorBody tr");
+    var logEntries = [];
+    logRows.forEach(function(row) {
+      var d = row.querySelector(".log-edit-date").value.trim();
+      var desc = row.querySelector(".log-edit-desc").value.trim();
+      if (d || desc) {
+        logEntries.push({ date: d, desc: desc });
+      }
+    });
+    
+    c.sections.log = serializeInteractionLog(logEntries);
+
+    // Update slug filename if name changed on a NEW contact
+    if (c.isNew && c.originalText === "__new__") {
+      var slug = nameVal.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+      c.path = "network/contacts/" + (slug || "unnamed") + ".md";
+    }
+
+    activeMode = "view";
+    
+    rebuildFilters();
+    renderSidebar();
+    renderActiveContact();
+    updateSaveButtonState();
+    
+    toast("Profile updated locally in memory");
+  }
+
+  function deleteActiveContact() {
+    var c = activeContact;
+    if (!c) return;
+
+    if (!confirm("Are you sure you want to archive / delete " + (c.fields.name || "this contact") + "?")) {
+      return;
+    }
+
+    if (c.isNew && c.originalText === "__new__") {
+      // Discard untouched new contact
+      contacts = contacts.filter(function(x) { return x !== c; });
+    } else {
+      // Archive contact: set status/relationship to archived, and keep it in memory
+      c.fields.relationship = "archived";
+    }
+
+    activeContact = null;
+    activeMode = "view";
+    
+    rebuildFilters();
+    renderSidebar();
+    renderDashboard();
+    updateSaveButtonState();
+    
+    toast("Contact archived");
+  }
+
+  // ---- Quick Log Functionality ----
+  function openQuickLogModal() {
+    if (!activeContact) return;
+    document.getElementById("quickLogDate").value = getTodayISOString();
+    document.getElementById("quickLogDesc").value = "";
+    openScrim("quickLogScrim");
+  }
+
+  document.getElementById("quickLogCancel").onclick = function() {
+    closeScrim("quickLogScrim");
+  };
+
+  document.getElementById("quickLogSave").onclick = function() {
+    var dateVal = document.getElementById("quickLogDate").value.trim();
+    var descVal = document.getElementById("quickLogDesc").value.trim();
+    
+    if (!descVal) {
+      alert("Please enter an interaction description.");
+      return;
+    }
+
+    if (activeContact) {
+      var entries = parseInteractionLog(activeContact.sections.log);
+      entries.push({
+        date: dateVal,
+        desc: descVal
+      });
+
+      // Update interaction log
+      activeContact.sections.log = serializeInteractionLog(entries);
+
+      // Auto update last_contact if the logged date is newer than the current last_contact
+      var currentLast = activeContact.fields.last_contact || "";
+      if (dateVal && dateVal > currentLast) {
+        activeContact.fields.last_contact = dateVal;
+      }
+
+      closeScrim("quickLogScrim");
+      renderSidebar();
+      renderActiveContact();
+      updateSaveButtonState();
+      
+      toast("Interaction logged successfully");
+    }
+  };
+
+  // ---- Export to VBA Envelope ----
+  function buildEnvelope() {
+    var dirty = getDirtyContacts();
+    var env = "<VBA_WRITE>\n";
+    dirty.forEach(function(c) {
+      var content = serializeContact(c);
+      env += "### FILE: " + c.path + "\n" + content.replace(/\r\n/g, "\n").replace(/\r/g, "\n") + "\n### END FILE\n";
+    });
+    env += "</VBA_WRITE>";
+    return {
+      env: env,
+      count: dirty.length,
+      list: dirty
+    };
+  }
+
+  function doExport() {
+    var r = buildEnvelope();
+    if (r.count === 0) return;
+    
+    document.getElementById("expBox").textContent = r.env;
+    openScrim("expScrim");
+  }
+
+  // ---- Helper UI Utilities ----
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+  function escAttr(s) {
+    return esc(s).replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+  function escJs(s) {
+    return String(s == null ? "" : s).replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, '\\"');
+  }
+
+  function stampNow() {
+    var d = new Date();
+    var hh = String(d.getHours()).padStart(2, "0");
+    var mm = String(d.getMinutes()).padStart(2, "0");
+    document.getElementById("stamp").textContent = "Loaded " + hh + ":" + mm + " \u00B7 " + contacts.length + " contacts";
+  }
+
+  function openScrim(id) {
+    document.getElementById(id).classList.add("open");
+  }
+  function closeScrim(id) {
+    document.getElementById(id).classList.remove("open");
+  }
+
+  var toastT;
+  function toast(msg) {
+    var t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toastT);
+    toastT = setTimeout(function() {
+      t.classList.remove("show");
+    }, 2800);
+  }
+
+  // ---- Copy Text Fallback ----
+  function copyText(text, cb) {
+    if (window.isSecureContext && navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function() { cb(true); }, function() { cb(legacyCopy(text)); });
+    } else {
+      cb(legacyCopy(text));
+    }
+  }
+  
+  function legacyCopy(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    var ok = false;
+    try {
+      ok = document.execCommand("copy");
+    } catch(e) {}
+    document.body.removeChild(ta);
+    return ok;
+  }
+
+  // ---- Wire Up Events ----
+  document.getElementById("searchBar").oninput = renderSidebar;
+  document.getElementById("filterRelationship").onchange = renderSidebar;
+  document.getElementById("filterComponent").onchange = renderSidebar;
+  document.getElementById("filterTag").onchange = renderSidebar;
+  document.getElementById("sortOrder").onchange = renderSidebar;
+
+  document.getElementById("loadAllBtn").onclick = function() {
+    var req = "<CONTEXT_REQUEST>\nmode: all\n</CONTEXT_REQUEST>";
+    copyText(req, function(ok) {
+      if (ok) {
+        toast("Copied 'Load All' request! Run 'Build Context' in StickShift.");
+      } else {
+        toast("Copy failed - copy manually.");
+      }
+    });
+  };
+
+  document.getElementById("loadBtn").onclick = function() {
+    document.getElementById("loadErr").textContent = "";
+    openScrim("loadScrim");
+  };
+  document.getElementById("loadCancel").onclick = function() {
+    closeScrim("loadScrim");
+  };
+  document.getElementById("loadDo").onclick = function() {
+    var txt = document.getElementById("loadText").value;
+    if (loadFromText(txt)) {
+      closeScrim("loadScrim");
+      toast("Bundle loaded successfully");
+    } else {
+      document.getElementById("loadErr").textContent = "Failed to parse. Paste a valid OKF context bundle containing contacts.";
+    }
+  };
+
+  document.getElementById("saveBtn").onclick = doExport;
+  document.getElementById("expClose").onclick = function() {
+    closeScrim("expScrim");
+  };
+  document.getElementById("expCopy").onclick = function() {
+    var env = document.getElementById("expBox").textContent;
+    copyText(env, function(ok) {
+      if (ok) {
+        // Reset dirty status after successful copy
+        var dirty = getDirtyContacts();
+        dirty.forEach(function(c) {
+          c.originalText = serializeContact(c);
+          c.isNew = false;
+        });
+        toast("Envelope copied to clipboard!");
+        closeScrim("expScrim");
+        renderSidebar();
+        renderActiveContact();
+        updateSaveButtonState();
+      } else {
+        toast("Copy failed - select text manually and copy.");
+      }
+    });
+  };
+
+  // Drag and Drop
+  var dropZone = document.getElementById("dropZone");
+  var fileInput = document.getElementById("fileInput");
+
+  dropZone.onclick = function() { fileInput.click(); };
+  fileInput.onchange = function(e) {
+    var file = e.target.files[0];
+    if (file) handleFileLoad(file);
+  };
+
+  dropZone.addEventListener("dragover", function(e) {
+    e.preventDefault();
+    dropZone.style.borderColor = "var(--primary)";
+    dropZone.style.backgroundColor = "rgba(99, 102, 241, 0.1)";
+  });
+  dropZone.addEventListener("dragleave", function() {
+    dropZone.style.borderColor = "var(--border-color)";
+    dropZone.style.backgroundColor = "#0f172a";
+  });
+  dropZone.addEventListener("drop", function(e) {
+    e.preventDefault();
+    dropZone.style.borderColor = "var(--border-color)";
+    dropZone.style.backgroundColor = "#0f172a";
+    var file = e.dataTransfer.files[0];
+    if (file) handleFileLoad(file);
+  });
+
+  function handleFileLoad(file) {
+    var reader = new FileReader();
+    reader.onload = function(evt) {
+      var txt = evt.target.result;
+      document.getElementById("loadText").value = txt;
+      if (loadFromText(txt)) {
+        closeScrim("loadScrim");
+        toast("Bundle loaded successfully");
+      } else {
+        document.getElementById("loadErr").textContent = "Failed to parse file.";
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  // Global window drop listener
+  window.addEventListener("dragover", function(e) {
+    e.preventDefault();
+  });
+  window.addEventListener("drop", function(e) {
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      e.preventDefault();
+      var file = e.dataTransfer.files[0];
+      if (file) {
+        var reader = new FileReader();
+        reader.onload = function(evt) {
+          var txt = evt.target.result;
+          if (loadFromText(txt)) {
+            toast("Context bundle loaded successfully!");
+          } else {
+            toast("Failed to parse dropped context bundle.");
+          }
+        };
+        reader.readAsText(file);
+      }
+    }
+  });
+
+  // Onboarding Panel Wiring
+  document.getElementById("ssFootBtn").onclick = function() {
+    var p = document.getElementById("ssPanel");
+    p.classList.toggle("open");
+    var btn = document.getElementById("ssFootBtn");
+    if (p.classList.contains("open")) {
+      btn.innerHTML = "<span>* Part of StickShift &#9662;</span>";
+      p.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      btn.innerHTML = "<span>* Part of StickShift -&gt;</span>";
+    }
+  };
+  document.getElementById("ssYes").onclick = function() {
+    document.getElementById("ssBranchYes").classList.add("show");
+    document.getElementById("ssBranchNo").classList.remove("show");
+  };
+  document.getElementById("ssNo").onclick = function() {
+    document.getElementById("ssBranchNo").classList.add("show");
+    document.getElementById("ssBranchYes").classList.remove("show");
+  };
+  document.getElementById("ssCopySkill").onclick = function() {
+    var sk = document.getElementById("stickshift-skill").textContent.trim();
+    copyText(sk, function(ok) {
+      toast(ok ? "Skill copied to clipboard!" : "Copy failed - select skill manually.");
+    });
+  };
+
+  // Close modals clicking on scrim backdrop
+  document.querySelectorAll(".scrim").forEach(function(s) {
+    s.addEventListener("mousedown", function(e) {
+      if (e.target === s) s.classList.remove("open");
+    });
+  });
+
+  // Auto-attempt relative load on init (CORS-dependent fallback)
+  (function initLoad() {
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", "../-dist/StickShift-context.md", true);
+    xhr.onload = function() {
+      if (xhr.status === 200 && xhr.responseText) {
+        if (loadFromText(xhr.responseText)) {
+          toast("Context bundle loaded from dist folder!");
+        }
+      }
+    };
+    xhr.send();
+  })();
+</script>
+</body>
+</html>
