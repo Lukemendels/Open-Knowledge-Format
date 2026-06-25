@@ -397,18 +397,14 @@
         </div>
         
         <div class="action-row">
-          <button class="btn btn-info disabled" id="copy-btn" onclick="copyFormattedBody()">
-            <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
-            Copy Formatted Body
-          </button>
-          <a class="btn btn-success disabled" id="mailto-btn" href="#" target="_blank">
+          <button class="btn btn-success disabled" id="compose-btn" onclick="copyAndCompose()">
             <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 19v-8.93a2 2 0 01.89-1.664l8-5.333a2 2 0 012.22 0l8 5.333A2 2 0 0121 10.07V19M3 19a2 2 0 002 2h14a2 2 0 002-2M3 19l6.75-4.5M21 19l-6.75-4.5M3 10l6.75 4.5M21 10l-6.75 4.5m0 0l-2.25-1.5a2 2 0 00-2.22 0l-2.25 1.5"/></svg>
-            Open in Outlook
-          </a>
+            Copy &amp; Open Outlook
+          </button>
         </div>
 
         <div class="hint-bar">
-          <strong>Flow:</strong> Copy formatted body &rarr; Open in Outlook &rarr; click into body &rarr; paste &rarr; send.
+          <strong>Flow:</strong> Click Copy &amp; Open Outlook &rarr; click into Outlook body &rarr; paste &rarr; send.
         </div>
       </div>
     </div>
@@ -451,7 +447,7 @@
     <footer>
       <span>&copy; 2026 StickShift Cockpit Integration</span>
       <button class="footer-btn" onclick="toggleSetupPanel()">
-        <span>⚙ Part of StickShift</span>
+        <span>Part of StickShift</span>
         <span id="footer-arrow">&#9656;</span>
       </button>
     </footer>
@@ -487,24 +483,24 @@ timestamp: 2026-06-25T00:00:00Z
 ## Why this skill exists (the one fact that shapes everything)
 
 A `mailto:` body is permanently plain text. It cannot carry bullets, bold, or
-any formatting — that is fixed by the URL scheme, not by us. But the operator
+any formatting - that is fixed by the URL scheme, not by us. But the operator
 *needs bullets* in real email.
 
 The resolution: **mailto carries To + Subject only; the body travels on the
 clipboard as rich `text/html`.** The clipboard is the formatting channel; the
 URL is the addressing channel. That split is the whole design, and it lives in
-the **EmailComposer HTML tool** — not here. This skill never encodes a `mailto`
+the **EmailComposer HTML tool** - not here. This skill never encodes a `mailto`
 link and never touches percent-escapes. Your job is the *conversation*: gather,
 draft, and on approval hand off.
 
 ## Inputs you can expect
 
-StickShift bundles in a **recipient roster** — a markdown list of names and
+StickShift bundles in a **recipient roster** - a markdown list of names and
 addresses, each optionally with a one-line note and a link to a deeper concept:
 
 ```
-- Paul Meyers <paul.meyers@tsa.dhs.gov> — Enterprise Support, first Paperclip dev. [detail](people/paul-meyers.md)
-- Sutton <sutton@tsa.dhs.gov> — regulatory economist, cold-read validator. [detail](people/sutton.md)
+- Paul Meyers <paul.meyers@tsa.dhs.gov> - Enterprise Support, first Paperclip dev. [detail](people/paul-meyers.md)
+- Sutton <sutton@tsa.dhs.gov> - regulatory economist, cold-read validator. [detail](people/sutton.md)
 ```
 
 The note and the detail link exist so your draft can be *specific*. If the task
@@ -520,7 +516,7 @@ second is rare.
 ## The loop (AHA: AI surfaces / human decides / AI executes / human verifies)
 
 1. **Surface.** Draft the email and show it *in chat as a fenced block* in the
-   handoff format below. This is the human's decision surface — readable plain
+   handoff format below. This is the human's decision surface - readable plain
    text, no link, no tool yet. Invite edits.
 2. **Iterate.** While the operator is changing wording, recipients, or tone, you
    are still in the drafting phase. **Do not emit any envelope.** Re-show the
@@ -528,8 +524,7 @@ second is rare.
 3. **Hand off.** When the latest message signals approval ("looks good,"
    "approve," "send it," "that's it"), emit exactly one `<HTML_OPEN>` envelope
    for `email-composer.html` and nothing else. The operator opens the tool,
-   pastes the approved block, copies the formatted body, opens the addressed
-   compose window, pastes, scans, and sends.
+   pastes the approved block, clicks Copy & Open Outlook, pastes, scans, and sends.
 
 The handoff is a hard switch, not a blend: drafting turns produce prose + a
 fenced block; the approval turn produces *only* the envelope.
@@ -537,14 +532,14 @@ fenced block; the approval turn produces *only* the envelope.
 ## Handoff format (what the tool parses)
 
 Show every draft as a single fenced block in this exact shape. Headers above the
-`---`, body below. The body is plain markdown — paragraphs, `- ` bullets, and
+`---`, body below. The body is plain markdown - paragraphs, `- ` bullets, and
 `**bold**` only. The tool renders this subset to HTML for the clipboard; nothing
 fancier survives Outlook's paste sanitizer anyway.
 
 ```
 TO: paul.meyers@tsa.dhs.gov, sutton@tsa.dhs.gov
 CC:
-SUBJECT: StickShift install — Thursday 2pm
+SUBJECT: StickShift install - Thursday 2pm
 ---
 Paul, Sutton,
 
@@ -562,7 +557,7 @@ Luke
 Rules for the block:
 - `TO:` and `CC:` are comma-separated. Leave `CC:` present but empty if none.
 - Put a literal em-dash, `&`, `%`, or smart quote in the SUBJECT if the writing
-  calls for it. **You do not encode them** — the tool does, and the operator
+  calls for it. **You do not encode them** - the tool does, and the operator
   eyeballs the subject in the compose window before sending (the verify step).
 - The body may contain anything; it rides the clipboard, so no character is
   dangerous and there is no length limit to respect here.
@@ -583,7 +578,7 @@ tool: email-composer.html
 ## Do NOT
 
 - Do not build or emit a `mailto:` link yourself.
-- Do not percent-encode anything (`%20`, `%0D%0A`, `&` → `%26` …). That logic was
+- Do not percent-encode anything (`%20`, `%0D%0A`, `&` -> `%26` ...). That logic was
   removed on purpose; the clipboard path makes it unnecessary and the tool owns
   the small remainder.
 - Do not open the tool while the operator is still editing.
@@ -592,6 +587,16 @@ tool: email-composer.html
 
   <!-- Interactive Logic -->
   <script>
+    let currentMailto = "";
+
+    function copyAndCompose() {
+      if (!currentMailto) return;
+      copyFormattedBody();
+      setTimeout(() => {
+        window.location.href = currentMailto;
+      }, 100);
+    }
+
     function parseDraft() {
       const draftText = document.getElementById("draft").value;
       const previewEl = document.getElementById("preview");
@@ -612,8 +617,8 @@ tool: email-composer.html
       const dividerIndex = cleanText.indexOf("---");
       if (dividerIndex === -1) {
         errorEl.textContent = "Could not find the '---' divider between headers and body.";
-        document.getElementById("mailto-btn").classList.add("disabled");
-        document.getElementById("copy-btn").classList.add("disabled");
+        document.getElementById("compose-btn").classList.add("disabled");
+        currentMailto = "";
         previewEl.innerHTML = '<p style="color: #94a3b8; font-style: italic;">Your formatted email preview will appear here after parsing...</p>';
         return;
       }
@@ -655,13 +660,11 @@ tool: email-composer.html
         mailto += "?" + queryParams.join("&");
       }
       
-      const mailtoBtn = document.getElementById("mailto-btn");
-      mailtoBtn.href = mailto;
-      mailtoBtn.classList.remove("disabled");
+      currentMailto = mailto;
       
       const htmlResult = renderMarkdown(bodyPart);
       previewEl.innerHTML = htmlResult;
-      document.getElementById("copy-btn").classList.remove("disabled");
+      document.getElementById("compose-btn").classList.remove("disabled");
     }
 
     function renderMarkdown(md) {
