@@ -128,6 +128,8 @@ Sub BuildContextBundle()
 
     If mode = "index" Then
         assembled = AssembleIndex(root, foundCount, mapCount, selCount)
+    ElseIf mode = "all" Then
+        assembled = AssembleAll(root, foundCount, mapCount, selCount)
     Else
         If seedCount = 0 Then
             MsgBox "No include: paths found in request.", vbExclamation, "StickShift"
@@ -234,6 +236,35 @@ Private Function AssembleIndex(ByVal root As String, _
     End If
 
     AssembleIndex = sb
+End Function
+
+
+Private Function AssembleAll(ByVal root As String, _
+                              ByRef foundCount As Long, _
+                              ByRef mapCount As Long, _
+                              ByRef selCount As Long) As String
+    Dim sb As String: sb = ""
+    Dim allFiles() As String
+    Dim afc As Long: afc = 0
+    ReDim allFiles(0 To 99)
+    
+    CollectAllConceptsRecursive fso.GetFolder(root), root, allFiles, afc
+    If afc > 0 Then
+        ReDim Preserve allFiles(0 To afc - 1)
+        InsertionSortByFilename allFiles
+        Dim i As Long
+        For i = 0 To afc - 1
+            Dim fContent As String: fContent = ReadUtf8(root & Replace(allFiles(i), "/", "\"))
+            Dim layer As String: layer = GetLayer(allFiles(i))
+            sb = sb & MakeAnchor(allFiles(i), fContent, layer)
+            Select Case layer
+                Case "foundation": foundCount = foundCount + 1
+                Case "map":        mapCount = mapCount + 1
+                Case Else:         selCount = selCount + 1
+            End Select
+        Next i
+    End If
+    AssembleAll = sb
 End Function
 
 
@@ -416,6 +447,32 @@ Private Sub CollectConceptsRecursive(ByVal folder As Object, ByVal root As Strin
         CollectConceptsRecursive d, root, files, count
     Next d
 End Sub
+
+
+' Collect all concept files under folder recursively, excluding system/code directories.
+Private Sub CollectAllConceptsRecursive(ByVal folder As Object, ByVal root As String, _
+                                         ByRef files() As String, ByRef count As Long)
+    Dim f As Object
+    For Each f In folder.files
+        If IsConceptFile(f.name) And LCase(f.name) <> "log.md" Then
+            Dim rel As String: rel = Mid(f.path, Len(root) + 1)
+            rel = Replace(rel, "\", "/")
+            If count > UBound(files) Then ReDim Preserve files(0 To count + 999)
+            files(count) = rel: count = count + 1
+        End If
+    Next f
+    Dim d As Object
+    For Each d In folder.SubFolders
+        Dim folderName As String: folderName = LCase(d.name)
+        If folderName <> ".git" And folderName <> ".github" And _
+           folderName <> ".venv" And folderName <> ".pytest_cache" And _
+           folderName <> "builds" And folderName <> "tests" And _
+           folderName <> "html" And folderName <> "_meta" Then
+            CollectAllConceptsRecursive d, root, files, count
+        End If
+    Next d
+End Sub
+
 
 ' Collect all .md files except log.md (includes index.md) for inbound link scanning.
 Private Sub CollectLinkSourcesRecursive(ByVal folder As Object, ByVal root As String, _

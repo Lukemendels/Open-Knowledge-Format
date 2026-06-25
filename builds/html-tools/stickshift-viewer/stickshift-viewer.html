@@ -328,6 +328,16 @@
     font-style: italic;
   }
 
+  .preview-pane a {
+    color: #2563eb;
+    text-decoration: none;
+    border-bottom: 1px dotted #2563eb;
+  }
+  .preview-pane a:hover {
+    color: #1d4ed8;
+    border-bottom-style: solid;
+  }
+
   /* Edit Mode */
   .editor-textarea {
     flex: 1;
@@ -907,6 +917,9 @@ Saving changes: The tool tracks changes made to any files and exports a standard
       .replace(/\[x\]/gi, '<input type="checkbox" checked disabled style="margin-right: 6px;">')
       .replace(/\[ \]/g, '<input type="checkbox" disabled style="margin-right: 6px;">');
     
+    // Parse markdown links [text](url)
+    processed = processed.replace(/\[([^\]\n]+)\]\(([^)\n]+)\)/g, '<a href="$2">$1</a>');
+    
     processed = processed.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
     processed = processed.replace(/\*([^*]+)\*/g, "<em>$1</em>");
     return processed;
@@ -1082,6 +1095,73 @@ Saving changes: The tool tracks changes made to any files and exports a standard
     return String(s == null ? "" : s).replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, '\\"');
   }
 
+  // ---- Link Navigation ----
+  function resolveRelativePath(basePath, relativePath) {
+    if (relativePath.indexOf("://") !== -1 || relativePath.startsWith("/") || relativePath.startsWith("\\")) {
+      var clean = relativePath.replace(/^[a-zA-Z]+:\/\//, ""); // remove file://, http://, etc.
+      for (var idx = 0; idx < files.length; idx++) {
+        var fPath = files[idx].path;
+        if (clean.endsWith(fPath)) {
+          return fPath;
+        }
+      }
+      return null;
+    }
+    
+    var parts = basePath.split("/");
+    parts.pop(); // remove current file name
+    
+    var relParts = relativePath.split("/");
+    for (var i = 0; i < relParts.length; i++) {
+      var p = relParts[i];
+      if (p === "." || p === "") {
+        continue;
+      }
+      if (p === "..") {
+        parts.pop();
+      } else {
+        parts.push(p);
+      }
+    }
+    return parts.join("/");
+  }
+
+  function handleLinkClicked(href) {
+    if (!activeFile) return false;
+    try {
+      var decodedHref = decodeURIComponent(href);
+      var hashIdx = decodedHref.indexOf("#");
+      if (hashIdx !== -1) {
+        decodedHref = decodedHref.slice(0, hashIdx);
+      }
+      if (!decodedHref) return false;
+      
+      // Try resolving relatively to active file
+      var targetPath = resolveRelativePath(activeFile.path, decodedHref);
+      if (targetPath) {
+        var found = files.filter(function(f) { return f.path === targetPath; })[0];
+        if (found) {
+          selectFile(targetPath);
+          toast("Navigated to " + targetPath);
+          return true;
+        }
+      }
+      
+      // Fallback: search for direct suffix matches in loaded files
+      for (var idx = 0; idx < files.length; idx++) {
+        var fPath = files[idx].path;
+        if (fPath === decodedHref || decodedHref.endsWith("/" + fPath) || fPath.endsWith("/" + decodedHref)) {
+          selectFile(fPath);
+          toast("Navigated to " + fPath);
+          return true;
+        }
+      }
+    } catch(e) {
+      console.error(e);
+    }
+    return false;
+  }
+
   // ---- Clipboard with file:// fallback ----
   function copyText(text, cb) {
     if (window.isSecureContext && navigator.clipboard && navigator.clipboard.writeText) {
@@ -1132,6 +1212,20 @@ Saving changes: The tool tracks changes made to any files and exports a standard
   }
 
   // ---- Wire Up Events ----
+  document.getElementById("panelBody").onclick = function(e) {
+    var target = e.target;
+    while (target && target !== this) {
+      if (target.tagName === "A" && target.getAttribute("href")) {
+        var href = target.getAttribute("href");
+        if (handleLinkClicked(href)) {
+          e.preventDefault();
+          return;
+        }
+      }
+      target = target.parentNode;
+    }
+  };
+
   document.getElementById("loadBtn").onclick = function() {
     document.getElementById("loadErr").textContent = "";
     openScrim("loadScrim");

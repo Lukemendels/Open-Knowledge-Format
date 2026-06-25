@@ -270,6 +270,45 @@ def assemble_index(bundle_root: Path) -> tuple[str, int, int, int]:
     return "".join(parts), found_c, map_c, sel_c
 
 
+def assemble_all(bundle_root: Path) -> tuple[str, int, int, int]:
+    """
+    Assemble all concept files under bundle root recursively, excluding system/code directories.
+    Returns (content, foundation_count, map_count, selected_count).
+    """
+    parts: list[str] = []
+    found_c = map_c = sel_c = 0
+    concept_files = []
+
+    # Exclude system folders
+    excluded = {".git", ".github", ".venv", ".pytest_cache", "builds", "tests", "html", "_meta"}
+    
+    for f in sorted(bundle_root.rglob("*")):
+        if f.is_file():
+            parts_dirs = f.relative_to(bundle_root).parts
+            if any(p in excluded for p in parts_dirs[:-1]):
+                continue
+            
+            n = f.name.lower()
+            if (n.endswith(".md") or n.endswith(".txt")) and n != "log.md":
+                rel = str(f.relative_to(bundle_root)).replace("\\", "/")
+                concept_files.append((f, rel))
+
+    concept_files.sort(key=lambda item: (item[0].name.lower(), item[1].lower()))
+
+    for f, rel in concept_files:
+        content = f.read_text(encoding="utf-8")
+        parts.append(_make_anchor(rel, content))
+        layer = _get_layer(rel)
+        if layer == "foundation":
+            found_c += 1
+        elif layer == "map":
+            map_c += 1
+        else:
+            sel_c += 1
+
+    return "".join(parts), found_c, map_c, sel_c
+
+
 def assemble_bundle(
     bundle_root: Path,
     seeds: list[str],
@@ -388,6 +427,8 @@ def build_context_bundle(
 
     if mode == "index":
         body, found_c, map_c, sel_c = assemble_index(bundle_root)
+    elif mode == "all":
+        body, found_c, map_c, sel_c = assemble_all(bundle_root)
     else:
         if not req["seeds"]:
             raise ValueError("No include: paths in bundle request")
@@ -785,3 +826,40 @@ def test_integration_bundle_mode(tmp_path: Path) -> None:
     assert "concept=builds/a.md layer=selected" in content
     assert "concept=builds/b.md layer=selected" in content
     assert "concepts: 2 (0 foundation, 0 map, 2 selected)\n" in content
+
+
+def test_integration_all_mode(tmp_path: Path) -> None:
+    # Set up some dummy directories/files
+    found = tmp_path / "_foundation"
+    found.mkdir()
+    (found / "schema.md").write_text("Schema content\n", encoding="utf-8")
+    
+    skills = tmp_path / "skills"
+    skills.mkdir()
+    (skills / "editor.md").write_text("Editor content\n", encoding="utf-8")
+    
+    # Git should be ignored
+    git_dir = tmp_path / ".git"
+    git_dir.mkdir()
+    (git_dir / "index.md").write_text("Git file content\n", encoding="utf-8")
+    
+    # Builds should be ignored
+    builds_dir = tmp_path / "builds"
+    builds_dir.mkdir()
+    (builds_dir / "app.md").write_text("Build file content\n", encoding="utf-8")
+    
+    request = (
+        "<CONTEXT_REQUEST>\n"
+        "mode: all\n"
+        "</CONTEXT_REQUEST>"
+    )
+    
+    content = build_context_bundle(tmp_path, request, FIXED_TS)
+    
+    assert "mode: all\n" in content
+    assert "concept=_foundation/schema.md layer=foundation" in content
+    assert "concept=skills/editor.md layer=selected" in content
+    
+    # System folders must be excluded
+    assert ".git/index.md" not in content
+    assert "builds/app.md" not in content

@@ -146,3 +146,56 @@ def test_sidebar_tree_construction() -> None:
     skills = tree["children"]["skills"]
     assert len(skills["files"]) == 1
     assert skills["files"][0]["name"] == "stickshift-viewer.md"
+
+
+def resolve_relative_path_python(base_path: str, relative_path: str) -> str:
+    """Python twin of the JavaScript resolveRelativePath() function."""
+    if "://" in relative_path or relative_path.startswith("/") or relative_path.startswith("\\"):
+        clean = re.sub(r"^[a-zA-Z]+://", "", relative_path)
+        return clean
+    
+    parts = base_path.split("/")
+    parts.pop() # remove current filename
+    
+    rel_parts = relative_path.split("/")
+    for p in rel_parts:
+        if p == "." or p == "":
+            continue
+        if p == "..":
+            if parts:
+                parts.pop()
+        else:
+            parts.append(p)
+    return "/".join(parts)
+
+
+def test_relative_path_resolver() -> None:
+    """Test relative path resolver logic."""
+    base = "projects/air-cargo-ai/tasks/T-0001.md"
+    
+    # Sibling file
+    assert resolve_relative_path_python(base, "T-0002.md") == "projects/air-cargo-ai/tasks/T-0002.md"
+    
+    # Parent folder file
+    assert resolve_relative_path_python(base, "../board.md") == "projects/air-cargo-ai/board.md"
+    
+    # Multi-level relative paths
+    assert resolve_relative_path_python(base, "../../index.md") == "projects/index.md"
+    
+    # Absolute file URL
+    assert resolve_relative_path_python(base, "file:///C:/StickShift/projects/index.md") == "/C:/StickShift/projects/index.md"
+
+
+def test_markdown_link_regex() -> None:
+    """Test parsing markdown links [text](url) into HTML links."""
+    link_pattern = re.compile(r"\[([^\]\n]+)\]\(([^)\n]+)\)")
+    
+    text = "Please check the [Kanban Board](../board.md) for updates."
+    replaced = link_pattern.sub(r'<a href="\2">\1</a>', text)
+    assert replaced == 'Please check the <a href="../board.md">Kanban Board</a> for updates.'
+    
+    # Bold links
+    bold_text = "See [**T-0001**](tasks/T-0001.md)"
+    replaced_bold = link_pattern.sub(r'<a href="\2">\1</a>', bold_text)
+    assert replaced_bold == 'See <a href="tasks/T-0001.md">**T-0001**</a>'
+
