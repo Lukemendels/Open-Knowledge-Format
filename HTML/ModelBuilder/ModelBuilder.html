@@ -303,7 +303,75 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   </section>
 </main>
 
-<footer>&#9881; Part of StickShift &#9656; &nbsp;·&nbsp; offline · no network · no model — pure manufacturing</footer>
+<footer>
+  <span class="ss-banner">
+    &#9881; Part of StickShift &#9656; &nbsp;·&nbsp; offline · no network &nbsp;·&nbsp;
+    New here? <button id="ss-open" onclick="toggleSsPanel(true)">Set up with StickShift</button>
+  </span>
+</footer>
+
+<script type="text/markdown" id="stickshift-skill" data-skill-slug="model-builder">
+---
+okf_version: "0.1"
+type: Skill
+title: ModelBuilder (Excel Consolidated Model Builder)
+description: Consolidate multiple Excel files into a single workbook and wire sheets together with live formula references.
+tags: [skill, html-tool, excel, model-builder]
+---
+
+# model-builder
+
+## Purpose
+Consolidate Excel files client-side, surfacing key ranges from source tabs in a central formula-wired INPUT sheet.
+
+## How to open the tool
+A local HTML tool cannot be opened from a chat hyperlink - the operator launches it from
+StickShift. Give the operator this block verbatim (these exact lines, no code fence), then one
+instruction line, and nothing else:
+
+<HTML_OPEN>
+tool: ModelBuilder.html
+include:
+- skills/model-builder.md
+</HTML_OPEN>
+
+Instruction line: "Copy the block above and click Open HTML Tool in StickShift."
+</script>
+
+<div id="ss-panel">
+  <div class="ss-card">
+    <div class="ss-card-header">
+      <h3>StickShift Integration</h3>
+      <button class="close-btn" onclick="toggleSsPanel(false)">&times;</button>
+    </div>
+    <div class="ss-tabs">
+      <button class="ss-tab active" onclick="switchSsTab('tab-yes')">Yes, using StickShift</button>
+      <button class="ss-tab" onclick="switchSsTab('tab-no')">No, standalone mode</button>
+    </div>
+    <div class="ss-card-body">
+      <div id="tab-yes" class="ss-tab-content active">
+        <p>Integrate ModelBuilder as an autonomous action in your StickShift cockpit:</p>
+        <ol class="ss-instruction-list">
+          <li>Click the <b>Copy Skill</b> button below to copy the integration code.</li>
+          <li>Paste the skill code directly into your StickShift setup.</li>
+          <li>You can then launch the tool seamlessly from the command line or chat.</li>
+        </ol>
+      </div>
+      <div id="tab-no" class="ss-tab-content">
+        <p>You can run this tool in standalone mode entirely in your browser:</p>
+        <ol class="ss-instruction-list">
+          <li>Drag & drop your source <code>.xlsx</code> or <code>.xls</code> files into the drop zone.</li>
+          <li>Review the generated <code>INPUT</code> sheet preview in the right pane.</li>
+          <li>Click <b>Build & Download</b> to generate the consolidated workbook.</li>
+        </ol>
+        <p style="color:var(--wire); font-weight:600; margin-top:10px;">✔ 100% offline — no data ever leaves your computer.</p>
+      </div>
+    </div>
+    <div class="ss-card-footer">
+      <button class="ss-btn-primary" id="copySkillBtn" onclick="onCopySkill()">Copy Skill</button>
+    </div>
+  </div>
+</div>
 
 <script>
 /* ============================ wiring core (mirrors core.js) ============================ */
@@ -441,17 +509,22 @@ function renderFlags(flags){
 
 function renderPreview(input){
   const rng=XLSX.utils.decode_range(input['!ref']);
-  let html='<div class="legend"><span><span class="dot" style="background:var(--wire)"></span>live formula</span>'+
-    '<span><span class="dot" style="background:var(--signal)"></span>source tab</span></div><div class="tablewrap"><table class="input">';
+  let html='<div class="legend"><span><span class="dot" style="background:var(--wire)"></span>formula wire</span>'+
+    '<span><span class="dot" style="background:var(--signal)"></span>source tab header</span></div>'+
+    '<div class="tablewrap"><table class="input">';
   for(let r=rng.s.r;r<=rng.e.r;r++){
     html+='<tr>';
+    if(r===0){
+      const cell=input[XLSX.utils.encode_cell({r:0,c:0})];
+      const val=cell?cell.v:'MODEL INPUT';
+      html+='<td class="titlelbl" colspan="'+(rng.e.c-rng.s.c+1)+'">'+escapeHtml(val)+'</td></tr>';
+      continue;
+    }
     for(let c=rng.s.c;c<=rng.e.c;c++){
       const cell=input[XLSX.utils.encode_cell({r:r,c:c})];
       if(!cell){html+='<td class="blank"></td>';continue;}
       if(cell.f){
         html+='<td class="wired">='+escapeHtml(cell.f)+' <span class="v">'+escapeHtml(fmtVal(cell.v))+'</span></td>';
-      }else if(r===0){
-        html+='<td class="titlelbl" colspan="'+(rng.e.c-rng.s.c+1)+'">'+escapeHtml(String(cell.v))+'</td>';break;
       }else{
         html+='<td class="blocklbl">'+escapeHtml(String(cell.v))+'</td>';
       }
@@ -468,12 +541,60 @@ function download(){
   const blob=new Blob([arr],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
-  a.href=url; a.download='model_'+new Date().toISOString().slice(0,16).replace(/[-:T]/g,'').replace(/(\d{8})(\d{4})/,'$1_$2')+'.xlsx';
+  a.href=url; a.download='model_'+new Date().toISOString().slice(0,16).replace(/[-:]/g,'').replace('T','_')+'.xlsx';
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),2000);
 }
 
 function escapeHtml(s){return String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));}
+
+/* StickShift integration functions */
+function toggleSsPanel(show) {
+  $('ss-panel').style.display = show ? 'flex' : 'none';
+}
+function switchSsTab(tabId) {
+  document.querySelectorAll('.ss-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.ss-tab-content').forEach(c => c.classList.remove('active'));
+  
+  if (tabId === 'tab-yes') {
+    document.querySelectorAll('.ss-tab')[0].classList.add('active');
+    $('tab-yes').classList.add('active');
+    $('copySkillBtn').style.display = 'block';
+  } else {
+    document.querySelectorAll('.ss-tab')[1].classList.add('active');
+    $('tab-no').classList.add('active');
+    $('copySkillBtn').style.display = 'none';
+  }
+}
+function copyText(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).catch(() => legacyCopy(text));
+  } else {
+    legacyCopy(text);
+  }
+}
+function legacyCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.focus(); ta.select();
+  try { document.execCommand('copy'); } catch (e) {}
+  document.body.removeChild(ta);
+}
+function onCopySkill() {
+  const skillText = $('stickshift-skill').textContent.trim();
+  copyText(skillText);
+  const btn = $('copySkillBtn');
+  const oldText = btn.textContent;
+  btn.textContent = 'Copied!';
+  btn.style.background = 'var(--wire)';
+  setTimeout(() => {
+    btn.textContent = oldText;
+    btn.style.background = '';
+  }, 2000);
+}
 
 /* events */
 fileInput.onchange=e=>{readFiles(e.target.files);fileInput.value='';};
