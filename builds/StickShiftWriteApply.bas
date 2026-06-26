@@ -184,16 +184,29 @@ Sub ApplyStickShiftWrite()
     Dim w As Long, s As Long
     If ApplyWriteEnvelopeText(clip, w, s) Then
         Dim summary As String
+        Dim ws As Object
+        Dim ts As String
+
         summary = w & " file(s) written. Logged to log.md."
         If s > 0 Then
             summary = summary & vbLf & s & " reserved file(s) skipped (log.md / index.md)."
         End If
-        MsgBox summary, vbInformation, "StickShift"
+
+        ts = Format(Now(), "yyyy-mm-dd hh:mm:ss")
+
+        ' Write success summary (with timestamp) into StickShift!D9 instead of showing a MsgBox.
+        On Error Resume Next
+        Set ws = ThisWorkbook.Worksheets("StickShift")
+        If Not ws Is Nothing Then
+            ws.Range("D9").Value = ts & "  |  " & Replace(summary, vbLf, "  ")
+        End If
+        On Error GoTo 0
 
         ' Regenerate index so new builds appear immediately.
         StickShiftIndexGenerator.GenerateStickShiftIndexes
     End If
 End Sub
+
 
 
 Private Sub AppendEditLog(ByVal entries As String)
