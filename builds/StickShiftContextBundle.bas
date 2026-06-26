@@ -151,14 +151,14 @@ Sub BuildContextBundle()
     Dim fullOutput As String: fullOutput = header & assembled
 
     ' 6. Write to -dist sibling folder (never inside the bundle root).
-    Dim DistDir As String: DistDir = StickShiftConfig.DistDir()
-    If DistDir = "" Then
+    Dim distDir As String: distDir = StickShiftConfig.distDir()
+    If distDir = "" Then
         MsgBox "Bundle root not set - cannot determine output directory.", _
                vbCritical, "StickShift"
         Exit Sub
     End If
 
-    Dim outPath As String: outPath = DistDir & OUT_FILENAME
+    Dim outPath As String: outPath = distDir & OUT_FILENAME
     WriteUtf8 outPath, fullOutput
 
     ' 7. Open/focus the dist folder in Explorer (reuse existing window).
@@ -168,7 +168,7 @@ Sub BuildContextBundle()
     Dim shellApp As Object
     Set shellApp = CreateObject("Shell.Application")
     Dim distNorm As String
-    distNorm = LCase(TrimTrailSlash(DistDir))
+    distNorm = LCase(TrimTrailSlash(distDir))
     Dim openWin As Boolean: openWin = True
     Dim w As Object
     For Each w In shellApp.Windows
@@ -185,13 +185,25 @@ Sub BuildContextBundle()
             Exit For
         End If
     Next w
-    If openWin Then Shell "explorer.exe """ & DistDir & """", vbNormalFocus
+    If openWin Then Shell "explorer.exe """ & distDir & """", vbNormalFocus
 
-    MsgBox "Context bundle written:" & vbLf & outPath & vbLf & vbLf & _
-           charCount & " chars   ~" & tokenCount & " tokens   " & _
-           totalConcepts & " concepts", _
-           vbInformation, "StickShift"
+    ' Write completion info to StickShift!B9 instead of showing a message box.
+    Dim ws As Object
+    Dim msgText As String
+
+    msgText = "Context bundle written: " & outPath & _
+              " | " & charCount & " chars  ~" & _
+              tokenCount & " tokens  " & _
+              totalConcepts & " concepts"
+
+    On Error Resume Next
+    Set ws = ThisWorkbook.Worksheets("StickShift")
+    If Not ws Is Nothing Then
+        ws.Range("B9").Value = Format(Now(), "yyyy-mm-dd hh:mm:ss") & "  |  " & msgText
+    End If
+    On Error GoTo 0
 End Sub
+
 
 
 ' -- Mode: index ------------------------------------------------------------------
@@ -824,7 +836,7 @@ Public Sub OpenHtmlTool()
 
     ' Resolve + launch the tool from the -html sibling.
     Dim htmlPath As String
-    htmlPath = StickShiftConfig.HtmlDir() & toolFile
+    htmlPath = StickShiftConfig.htmlDir() & toolFile
     If Not fso.FileExists(htmlPath) Then
         MsgBox "Tool not found:" & vbLf & htmlPath & vbLf & vbLf & _
                "Install it first with Install HTML Tool.", vbExclamation, "StickShift"
@@ -846,7 +858,7 @@ Public Sub OpenHtmlTool()
         Dim fullOutput As String
         fullOutput = BundleHeader("bundle", fC, mC, sC, assembled) & assembled
 
-        Dim distDir As String: distDir = StickShiftConfig.DistDir()
+        Dim distDir As String: distDir = StickShiftConfig.distDir()
         If distDir <> "" Then
             WriteUtf8 distDir & OUT_FILENAME, fullOutput
             msg = msg & vbLf & "Skill context written to -dist\" & OUT_FILENAME & _
@@ -854,5 +866,18 @@ Public Sub OpenHtmlTool()
         End If
     End If
 
-    MsgBox msg, vbInformation, "StickShift"
+    ' Write success message into StickShift!B18:D18 (merged cell) instead of MsgBox.
+    Dim ws As Object
+    Dim ts As String
+    ts = Format(Now(), "yyyy-mm-dd hh:mm:ss")
+
+    On Error Resume Next
+    Set ws = ThisWorkbook.Worksheets("StickShift")
+    If Not ws Is Nothing Then
+        ws.Range("B18:D18").Value = ts & "  |  " & Replace(msg, vbLf, "  ")
+    End If
+    On Error GoTo 0
 End Sub
+
+
+
