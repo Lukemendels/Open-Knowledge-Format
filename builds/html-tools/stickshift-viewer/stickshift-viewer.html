@@ -442,6 +442,19 @@
     outline: none;
   }
 
+  input.modal-input {
+    width: 100%;
+    background-color: #0b0f19;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    padding: 12px;
+    font-family: var(--mono);
+    font-size: 13px;
+    outline: none;
+    box-sizing: border-box;
+  }
+
   .err {
     color: #ef4444;
     font-size: 12.5px;
@@ -595,6 +608,8 @@
     <div class="panel-header" style="display: none;" id="panelHeader">
       <span id="filePath"></span>
       <div class="panel-actions">
+        <button id="loadThisBtn" title="Copy a CONTEXT_REQUEST for just this file. Run 'Build Context' in StickShift to load it into DHSChat.">Load this file &#8594; DHSChat</button>
+        <button id="loadFolderBtn" title="Copy a CONTEXT_REQUEST for this whole folder (seeds the folder index at depth 1). Run 'Build Context' in StickShift.">Load folder &#8594; DHSChat</button>
         <button id="toggleModeBtn">Edit Mode</button>
         <button id="applyChangeBtn" class="btn-primary">Save File</button>
       </div>
@@ -673,6 +688,20 @@
     <div class="modal-foot">
       <button id="expClose">Close</button>
       <button id="expCopy" class="btn-primary">Copy to clipboard</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reason Modal (tracked write: captures the 'why' for the edit-diff store) -->
+<div class="scrim" id="reasonScrim">
+  <div class="modal">
+    <h2>Why this change?</h2>
+    <p>One line, git-commit style. Stored with the before/after snapshot so future-you (and the skill-tuning pass) knows why this edit happened.</p>
+    <input type="text" id="reasonText" class="modal-input" maxlength="200" placeholder="e.g. tightened wage-source citation to BLS OEWS">
+    <div class="err" id="reasonErr"></div>
+    <div class="modal-foot">
+      <button id="reasonCancel">Cancel</button>
+      <button id="reasonDo" class="btn-primary">Continue to envelope</button>
     </div>
   </div>
 </div>
@@ -1071,16 +1100,19 @@ Saving changes: The tool tracks changes made to any files and exports a standard
   }
 
   // ---- Export to VBA Envelope ----
-  function doExport() {
+  function doExport(reason) {
     var dirty = getDirtyFiles();
     if (dirty.length === 0) return;
-    
+
+    // Tracked write: the leading reason: line is the capture signal for the VBA gate.
+    // One reason per save (git-commit style), applied to every file in the packet.
     var env = "<VBA_WRITE>\n";
+    env += "reason: " + String(reason || "").replace(/\r?\n/g, " ").trim() + "\n";
     dirty.forEach(function(f) {
       env += "### FILE: " + f.path + "\n" + f.text.replace(/\r\n/g, "\n").replace(/\r/g, "\n") + "\n### END FILE\n";
     });
     env += "</VBA_WRITE>";
-    
+
     document.getElementById("expBox").textContent = env;
     openScrim("expScrim");
   }
@@ -1227,6 +1259,40 @@ Saving changes: The tool tracks changes made to any files and exports a standard
     }
   };
 
+  // ---- Load the current view into DHSChat (scoped CONTEXT_REQUEST) ----
+  // Reuses the bundler's existing grammar: mode bundle + depth + include seeds.
+  // The bundler reads from disk, so these reflect the SAVED state - save edits first.
+  function folderOf(path) {
+    var i = path.lastIndexOf("/");
+    return i === -1 ? "" : path.slice(0, i);
+  }
+  function emitContextRequest(seeds, depth, label) {
+    var req = "<CONTEXT_REQUEST>\nmode: bundle\ndepth: " + depth + "\ninclude:\n";
+    seeds.forEach(function(p) { req += "- " + p + "\n"; });
+    req += "</CONTEXT_REQUEST>";
+    copyText(req, function(ok) {
+      if (ok) {
+        toast("Copied request for " + label + ". Run 'Build Context' in StickShift.");
+      } else {
+        toast("Copy failed - copy manually from the Console.");
+      }
+    });
+  }
+  document.getElementById("loadThisBtn").onclick = function() {
+    if (!activeFile) { toast("Select a file first."); return; }
+    // depth 0 = just this file. Bump to 1 if you also want what it links to.
+    emitContextRequest([activeFile.path], 0, "this file");
+  };
+  document.getElementById("loadFolderBtn").onclick = function() {
+    if (!activeFile) { toast("Select a file in the folder first."); return; }
+    var dir = folderOf(activeFile.path);
+    // Seed the folder's index.md at depth 1: the hub lists every section as a
+    // link, so one hop returns index + all sections. This is the sharded-doc
+    // "load it whole" move - no mode: folder needed.
+    var seed = (dir === "") ? "index.md" : dir + "/index.md";
+    emitContextRequest([seed], 1, "folder " + (dir || "(root)"));
+  };
+
   document.getElementById("loadAllBtn").onclick = function() {
     var req = "<CONTEXT_REQUEST>\nmode: all\n</CONTEXT_REQUEST>";
     copyText(req, function(ok) {
@@ -1271,7 +1337,30 @@ Saving changes: The tool tracks changes made to any files and exports a standard
   };
 
   document.getElementById("applyChangeBtn").onclick = applyActiveFileChanges;
-  document.getElementById("saveBtn").onclick = doExport;
+  // Save now routes through the reason modal so every viewer write is a tracked write.
+  document.getElementById("saveBtn").onclick = function() {
+    if (getDirtyFiles().length === 0) return;
+    document.getElementById("reasonErr").textContent = "";
+    document.getElementById("reasonText").value = "";
+    openScrim("reasonScrim");
+    setTimeout(function() { document.getElementById("reasonText").focus(); }, 50);
+  };
+  document.getElementById("reasonCancel").onclick = function() {
+    closeScrim("reasonScrim");
+  };
+  function submitReason() {
+    var reason = document.getElementById("reasonText").value.trim();
+    if (!reason) {
+      document.getElementById("reasonErr").textContent = "A one-line reason is required - it is the whole point of capturing the edit.";
+      return;
+    }
+    closeScrim("reasonScrim");
+    doExport(reason);
+  }
+  document.getElementById("reasonDo").onclick = submitReason;
+  document.getElementById("reasonText").addEventListener("keydown", function(e) {
+    if (e.key === "Enter") { e.preventDefault(); submitReason(); }
+  });
   document.getElementById("expClose").onclick = function() {
     closeScrim("expScrim");
   };
