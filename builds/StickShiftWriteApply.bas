@@ -71,6 +71,29 @@ Public Function ApplyWriteEnvelopeText(ByVal envelope As String, _
     Dim tagLen As Long: tagLen = Len("<VBA_WRITE>")
     body = Mid(body, startPos + tagLen, endPos - (startPos + tagLen))
 
+    ' --- Detect an optional leading reason: line (the tracked-write capture signal) ---
+    ' body normally opens with a blank line before the first real line, so the
+    ' reason: line -- when present -- is the first NON-EMPTY line, not byte 1.
+    Dim captureOn As Boolean: captureOn = False
+    Dim reasonText As String:  reasonText = ""
+
+    Dim leadTrimmed As String: leadTrimmed = body
+    Do While Left(leadTrimmed, 1) = vbLf
+        leadTrimmed = Mid(leadTrimmed, 2)
+    Loop
+
+    Dim reasonNlPos As Long: reasonNlPos = InStr(leadTrimmed, vbLf)
+    Dim firstLine As String
+    firstLine = Trim(IIf(reasonNlPos = 0, leadTrimmed, Left(leadTrimmed, reasonNlPos - 1)))
+
+    If Left(LCase(firstLine), 7) = "reason:" Then
+        captureOn = True
+        reasonText = Trim(Mid(firstLine, 8))
+        ' strip the reason line (and the blank line(s) before it) from body;
+        ' leave body untouched entirely when no reason line is present.
+        body = IIf(reasonNlPos = 0, "", Mid(leadTrimmed, reasonNlPos + 1))
+    End If
+
     ' --- Parse ### FILE: ... ### END FILE pairs ---
     Dim filePaths(0 To 99) As String
     Dim fileContents(0 To 99) As String
@@ -124,6 +147,9 @@ Public Function ApplyWriteEnvelopeText(ByVal envelope As String, _
     Dim parentDir As String
     Dim action As String
     Dim relFwd As String
+    Dim afterContent As String
+    Dim beforeContent As String
+    Dim cid As String
 
     For i = 0 To fileCount - 1
         ' Guard: never overwrite machine-owned files.
@@ -137,12 +163,23 @@ Public Function ApplyWriteEnvelopeText(ByVal envelope As String, _
             parentDir = fso.GetParentFolderName(absPath)
             If Not fso.FolderExists(parentDir) Then EnsureFolderTree parentDir
 
-            WriteUtf8 absPath, fileContents(i)
+            relFwd = Replace(filePaths(i), "\", "/")
+            If Left(relFwd, 1) = "/" Then relFwd = Mid(relFwd, 2)
+
+            ' --- tracked-write capture (gated) ---
+            afterContent = fileContents(i)
+            If captureOn Then
+                cid = EnsureConceptId(afterContent, i, relFwd)   ' may inject id into afterContent
+                beforeContent = ""
+                If existed Then beforeContent = ReadUtf8(absPath)
+                CaptureEditDiff cid, filePaths(i), afterContent, beforeContent, _
+                                IIf(existed, "edit", "new"), reasonText, i
+            End If
+
+            WriteUtf8 absPath, afterContent     ' afterContent, not fileContents(i): carries any injected id
             writeCount = writeCount + 1
 
             action = IIf(existed, "edit", "new")
-            relFwd = Replace(filePaths(i), "\", "/")
-            If Left(relFwd, 1) = "/" Then relFwd = Mid(relFwd, 2)
             logLines = logLines & "- " & Format(Now, "yyyy-mm-dd hh:nn:ss") & _
                        "  " & action & "  " & relFwd & vbLf
         End If
@@ -208,6 +245,127 @@ Sub ApplyStickShiftWrite()
 End Sub
 
 
+
+' Writes one diff record (AFTER then BEFORE) to the -edits sibling store. Runs
+' strictly before the live WriteUtf8 in the caller, so a mid-write crash still
+' leaves the live file as BEFORE while the diff already holds both versions.
+Private Sub CaptureEditDiff(ByVal cid As String, ByVal relPath As String, _
+                            ByVal afterContent As String, ByVal beforeContent As String, _
+                            ByVal action As String, ByVal reasonText As String, _
+                            ByVal seq As Long)
+    Dim dir As String: dir = StickShiftConfig.EditStoreDir()
+    If dir = "" Then Exit Sub
+
+    Dim relFwd As String: relFwd = Replace(relPath, "\", "/")
+    If Left(relFwd, 1) = "/" Then relFwd = Mid(relFwd, 2)
+
+    Dim ctype As String: ctype = FrontmatterValue(afterContent, "type")
+    Dim stamp As String: stamp = Format(Now, "yyyy-mm-dd hh:nn:ss")
+    Dim fname As String
+    fname = SanitizeId(cid) & "__" & Format(Now, "yyyymmddhhnnss") & "-" & seq & ".md"
+
+    Dim out As String
+    out = "---" & vbLf
+    out = out & "okf_version: ""0.1""" & vbLf
+    out = out & "type: EditDiff" & vbLf
+    out = out & "id: " & cid & vbLf
+    out = out & "path_at_write: " & relFwd & vbLf
+    out = out & "concept_type: " & ctype & vbLf
+    out = out & "action: " & action & vbLf
+    out = out & "reason: " & reasonText & vbLf
+    out = out & "captured: " & stamp & vbLf
+    out = out & "---" & vbLf & vbLf
+    out = out & "## AFTER" & vbLf & vbLf & afterContent & vbLf & vbLf
+    If action = "edit" Then
+        out = out & "## BEFORE" & vbLf & vbLf & beforeContent & vbLf
+    End If
+
+    WriteUtf8 dir & fname, out
+End Sub
+
+' Lazily assigns a stable concept id in content's frontmatter (mutating content
+' byref when an id is injected) and returns it. Existing id -> returned as-is,
+' content unchanged. Missing id with frontmatter present -> a new
+' "c-<timestamp>-<seq>" id is inserted immediately after the opening ---, seq
+' being the within-batch sequence seed so same-second writes stay unique.
+' No frontmatter at all -> falls back to "path:<fallbackKey>", content untouched.
+Private Function EnsureConceptId(ByRef content As String, ByVal seq As Long, _
+                                  ByVal fallbackKey As String) As String
+    Dim norm As String: norm = Replace(content, vbCrLf, vbLf)
+    Dim lines() As String: lines = Split(norm, vbLf)
+
+    If UBound(lines) >= 0 And Trim(lines(0)) = "---" Then
+        Dim j As Long
+        For j = 1 To UBound(lines)
+            If Trim(lines(j)) = "---" Then Exit For
+            Dim s As String: s = Trim(lines(j))
+            If Left(LCase(s), 3) = "id:" Then
+                EnsureConceptId = Trim(Mid(s, 4))
+                Exit Function
+            End If
+        Next j
+
+        Dim newId As String
+        newId = "c-" & Format(Now, "yyyymmddhhnnss") & "-" & seq
+
+        ' Insert "id: <new>" as a new line immediately after the opening ---.
+        Dim outLines() As String
+        ReDim outLines(UBound(lines) + 1)
+        outLines(0) = lines(0)
+        outLines(1) = "id: " & newId
+        Dim k As Long
+        For k = 1 To UBound(lines)
+            outLines(k + 1) = lines(k)
+        Next k
+
+        content = Join(outLines, vbLf)
+        EnsureConceptId = newId
+        Exit Function
+    End If
+
+    EnsureConceptId = "path:" & fallbackKey
+End Function
+
+' Reads one scalar value from the leading frontmatter block ("" if absent or
+' if content has no frontmatter at all).
+Private Function FrontmatterValue(ByVal content As String, ByVal key As String) As String
+    Dim norm As String: norm = Replace(content, vbCrLf, vbLf)
+    Dim lines() As String: lines = Split(norm, vbLf)
+
+    If UBound(lines) < 0 Then
+        FrontmatterValue = ""
+        Exit Function
+    End If
+    If Trim(lines(0)) <> "---" Then
+        FrontmatterValue = ""
+        Exit Function
+    End If
+
+    Dim prefix As String: prefix = LCase(key) & ":"
+    Dim j As Long
+    For j = 1 To UBound(lines)
+        If Trim(lines(j)) = "---" Then Exit For
+        Dim s As String: s = Trim(lines(j))
+        If Left(LCase(s), Len(prefix)) = prefix Then
+            FrontmatterValue = Trim(Mid(s, Len(key) + 2))
+            Exit Function
+        End If
+    Next j
+
+    FrontmatterValue = ""
+End Function
+
+' Strips characters illegal in a Windows filename from a concept id so it can
+' be used as the diff record's filename stem.
+Private Function SanitizeId(ByVal s As String) As String
+    Dim out As String: out = s
+    Dim illegal As String: illegal = "\/:*?""<>|"
+    Dim ch As Long
+    For ch = 1 To Len(illegal)
+        out = Replace(out, Mid(illegal, ch, 1), "_")
+    Next ch
+    SanitizeId = out
+End Function
 
 Private Sub AppendEditLog(ByVal entries As String)
     Dim logPath As String
