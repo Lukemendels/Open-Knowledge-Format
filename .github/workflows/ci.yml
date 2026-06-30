@@ -24,18 +24,5 @@ jobs:
       - name: Run tests
         run: pytest tests/ -q
 
-      - name: ASCII guard (builds/*.bas must contain no non-ASCII bytes)
-        run: |
-          if grep -rIP "[^\x00-\x7F]" builds/*.bas; then
-            echo "Non-ASCII characters found in builds/*.bas" >&2
-            exit 1
-          fi
-          echo "ASCII guard passed."
-
-      - name: ChrW guard (builds/*.bas must not use ChrW)
-        run: |
-          if grep -rIn "ChrW" builds/*.bas; then
-            echo "ChrW found in builds/*.bas - use plain ASCII literals" >&2
-            exit 1
-          fi
-          echo "ChrW guard passed."
+      - name: Stack guard (ASCII + ChrW -- same check the pre-commit hook runs)
+        run: python scripts/check_ascii.py

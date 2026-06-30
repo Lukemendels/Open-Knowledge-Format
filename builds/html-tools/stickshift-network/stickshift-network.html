@@ -1049,7 +1049,7 @@ This skill also defines how to reason about and update contacts directly from ch
 - The operator wants to view their professional contacts and networks.
 - The operator wants to add, edit, or log interactions with individuals in their CRM directory.
 - The operator needs to export contact updates back to files.
-- The operator asks to “log an interaction” or “create/update a contact” in the `/network/contacts/` directory.
+- The operator asks to "log an "interaction" - ok" or "create/update a contact" in the `/network/contacts/` directory.
 
 ## Spec and index (what defines the schema and roster)
 
@@ -1064,7 +1064,7 @@ When you work with contacts from chat, treat these two files as canonical:
   - Lists each contact file slug under `/network/contacts/` (for example, `heather-royce.md`, `juan-degree-hayes.md`).  
   - Use this index to determine whether a contact already exists before creating a new file.
 
-When asked to update or log an interaction for a person:
+When asked to update or log an "interaction" for a person:
 
 1. Load `/network/network.md` to confirm the schema.
 2. Load `/network/contacts/index.md` to see which contacts exist.
@@ -1072,7 +1072,7 @@ When asked to update or log an interaction for a person:
 
 ## Manual logging from chat (without opening the HTML tool)
 
-When the operator asks you to “log this interaction” or “add a contact” and wants to stay in chat, follow this pattern:
+When the operator asks you to "log this interaction" or "add a contact" and wants to stay in chat, follow this pattern:
 
 1. **Load spec and index**
    - Ensure you have `/network/network.md` (the spec) and `/network/contacts/index.md` (the roster) in context.
@@ -1086,7 +1086,7 @@ When the operator asks you to “log this interaction” or “add a contact” 
      - Plan to create a new contact file under `/network/contacts/` with a compliant slug.
 
 3. **If the contact exists: append interaction**
-   - Read the contact’s frontmatter and body.
+   - Read the contact's frontmatter and body.
    - In the frontmatter:
      - Update `last_contact` to the interaction date (ISO `YYYY-MM-DD`).
    - In the body:
@@ -1107,9 +1107,9 @@ When the operator asks you to “log this interaction” or “add a contact” 
      - `relationship` (for example, `collaborator`, `sponsor`, `peer`)
      - `tags` (list of short, machine-friendly tags such as `[air-cargo, ksp-alternative, collaborator]`)
    - Body sections:
-     - `# Summary` — brief description of who the person is and how they connect to the operator’s work.
-     - `# Notes` — key facts, preferences, or project-level notes.
-     - `# Interaction log` — start with at least one bullet describing the current interaction.
+     - `# Summary` - brief description of who the person is and how they connect to the operator's work.
+     - `# Notes` - key facts, preferences, or project-level notes.
+     - `# Interaction log` - start with at least one bullet describing the current interaction.
    - Emit a single `VBA_WRITE` envelope that creates this new contact file.
 
 5. **Scope discipline**

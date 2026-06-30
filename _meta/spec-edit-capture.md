@@ -2,10 +2,6 @@
 type: Spec
 title: Edit-Diff Capture — human edits as a skill-tuning signal
 description: Gates the VBA write so a tracked write (one carrying a reason) snapshots before/after the file and stores the pair in an -edits sibling store, keyed on a stable concept id. The accumulated diffs are labeled data ("the bundle said X, I changed it to Y") for tuning skills and prompts. Capture is global; per-skill vs. taste attribution is a downstream analysis pass, not a field at the gate.
-tags:
-  - markdown-editor
-  - html-tool
-  - concept-viewer
 status: spec
 okf_version: "0.1"
 ---

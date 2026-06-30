@@ -35,7 +35,7 @@ def test_viewer_ascii_only() -> None:
 
 def test_viewer_compliance_identity() -> None:
     """Ensure the window.STICKSHIFT_TOOL identity declaration is present and correct."""
-    html_text = TOOL_PATH.read_text(encoding="ascii")
+    html_text = TOOL_PATH.read_text(encoding="utf-8")
     
     # Check for the window.STICKSHIFT_TOOL object structure
     # Match id, file, skillSlug, and title
@@ -52,7 +52,7 @@ def test_viewer_compliance_identity() -> None:
 
 def test_viewer_compliance_embedded_skill() -> None:
     """Ensure the embedded companion skill block is present, correct, and matching."""
-    html_text = TOOL_PATH.read_text(encoding="ascii")
+    html_text = TOOL_PATH.read_text(encoding="utf-8")
     
     # 1. Check for the script tag structure
     script_match = re.search(
@@ -80,7 +80,7 @@ def test_viewer_compliance_embedded_skill() -> None:
 
 def test_viewer_compliance_onboarding_elements() -> None:
     """Ensure onboarding and setup elements exist in the DOM as required."""
-    html_text = TOOL_PATH.read_text(encoding="ascii")
+    html_text = TOOL_PATH.read_text(encoding="utf-8")
     
     # Verify presence of the onboarding/setup panel and buttons
     assert 'id="ssPanel"' in html_text, "Missing StickShift onboarding/setup panel container"
