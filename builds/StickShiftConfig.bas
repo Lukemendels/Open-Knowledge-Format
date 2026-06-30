@@ -11,6 +11,7 @@ Attribute VB_Name = "StickShiftConfig"
 '    SetBundleRoot() - folder-picker UI; saves and refreshes dashboard.
 '    BundleRootRaw() - non-prompting read; safe for dashboard display.
 '    DistDir()       - the -dist sibling of BundleRoot (created if absent).
+'    EditStoreDir()  - the -edits sibling of BundleRoot (created if absent).
 '
 '  Registry note: renaming REG_APP from "OKF" to "StickShift" orphans any
 '  root saved under the old key. Zero impact for a fresh user; existing
@@ -86,6 +87,27 @@ Public Function DistDir() As String
     End If
 
     DistDir = dist
+End Function
+
+
+Public Function EditStoreDir() As String
+    Dim root As String
+    root = BundleRoot()
+    If root = "" Then EditStoreDir = "": Exit Function
+
+    ' Strip the trailing backslash, append -edits\.
+    Dim stripped As String: stripped = Left(root, Len(root) - 1)
+    Dim edits As String:    edits = stripped & "-edits\"
+
+    Dim fso As Object
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If Not fso.FolderExists(edits) Then
+        On Error Resume Next
+        fso.CreateFolder edits
+        On Error GoTo 0
+    End If
+
+    EditStoreDir = edits
 End Function
 
 
